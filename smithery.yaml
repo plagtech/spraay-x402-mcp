@@ -1,0 +1,21 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+runtime: "typescript"
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - EVM_PRIVATE_KEY
+    properties:
+      EVM_PRIVATE_KEY:
+        type: string
+        title: "EVM Private Key"
+        description: "Private key of a wallet with USDC on Base mainnet. Used for automatic x402 micropayments."
+      SPRAAY_GATEWAY_URL:
+        type: string
+        default: "https://gateway.spraay.app"
+        description: "Spraay x402 Gateway URL (default: https://gateway.spraay.app)"
+  exampleConfig:
+    EVM_PRIVATE_KEY: "0xYourPrivateKeyWithUSDCOnBase"
+    SPRAAY_GATEWAY_URL: "https://gateway.spraay.app"
