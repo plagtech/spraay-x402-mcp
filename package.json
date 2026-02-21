@@ -1,0 +1,37 @@
+﻿{
+  "name": "spraay-x402-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Spraay x402 Gateway — AI models, batch payments, DeFi data & onchain intelligence on Base. Pay USDC per request.",
+  "main": "dist/index.js",
+  "bin": {
+    "spraay-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "keywords": ["mcp","x402","spraay","base","defi","ai","batch-payments","usdc","onchain","model-context-protocol"],
+  "author": "plagtech",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/plagtech/spraay-x402-mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@x402/axios": "^2.0.0",
+    "@x402/evm": "^2.0.0",
+    "axios": "^1.13.2",
+    "dotenv": "^16.4.5",
+    "viem": "^2.39.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
