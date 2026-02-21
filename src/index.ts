@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -6,6 +6,8 @@ import axios from "axios";
 import { x402Client, wrapAxiosWithPayment } from "@x402/axios";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
+import { createWalletClient, createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 import { config } from "dotenv";
 import { z } from "zod";
 
@@ -22,7 +24,20 @@ if (!evmPrivateKey) {
 
 async function createPaymentClient() {
   const client = new x402Client();
-  const signer = privateKeyToAccount(evmPrivateKey);
+  const account = privateKeyToAccount(evmPrivateKey);
+  const walletClient = createWalletClient({
+    account,
+    chain: base,
+    transport: http(),
+  });
+  const publicClient = createPublicClient({
+    chain: base,
+    transport: http(),
+  });
+  const signer = {
+    ...walletClient,
+    readContract: publicClient.readContract,
+  } as any;
   registerExactEvmScheme(client, { signer });
   return wrapAxiosWithPayment(axios.create({ baseURL: gatewayURL }), client);
 }
@@ -162,3 +177,4 @@ main().catch((error) => {
   console.error("Spraay MCP server error:", error);
   process.exit(1);
 });
+
