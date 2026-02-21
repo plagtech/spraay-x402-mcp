@@ -13,16 +13,15 @@ import { z } from "zod";
 
 config();
 
-const evmPrivateKey = process.env.EVM_PRIVATE_KEY as `0x${string}`;
 const gatewayURL = process.env.SPRAAY_GATEWAY_URL || "https://gateway.spraay.app";
 
-if (!evmPrivateKey) {
-  throw new Error(
-    "EVM_PRIVATE_KEY is required. Set it to a wallet with USDC on Base."
-  );
-}
-
 async function createPaymentClient() {
+  const evmPrivateKey = process.env.EVM_PRIVATE_KEY as `0x${string}`;
+  if (!evmPrivateKey) {
+    throw new Error(
+      "EVM_PRIVATE_KEY is required. Set it to a wallet with USDC on Base."
+    );
+  }
   const client = new x402Client();
   const account = privateKeyToAccount(evmPrivateKey);
   const walletClient = createWalletClient({
@@ -42,14 +41,7 @@ async function createPaymentClient() {
   return wrapAxiosWithPayment(axios.create({ baseURL: gatewayURL }), client);
 }
 
-async function main() {
-  const api = await createPaymentClient();
-
-  const server = new McpServer({
-    name: "Spraay x402 Gateway",
-    version: "1.0.0",
-  });
-
+function registerTools(server: McpServer, api: any) {
   server.tool(
     "spraay_chat",
     "Send a message to 200+ AI models (GPT-4, Claude, Llama, Gemini, etc) via Spraay x402 Gateway. Costs $0.005 USDC per request. OpenAI-compatible.",
@@ -168,7 +160,26 @@ async function main() {
       return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
     }
   );
+}
 
+// Sandbox server for Smithery scanning (no real credentials needed)
+export function createSandboxServer() {
+  const server = new McpServer({
+    name: "Spraay x402 Gateway",
+    version: "1.0.0",
+  });
+  const mockApi = axios.create({ baseURL: gatewayURL });
+  registerTools(server, mockApi);
+  return server;
+}
+
+async function main() {
+  const api = await createPaymentClient();
+  const server = new McpServer({
+    name: "Spraay x402 Gateway",
+    version: "1.0.0",
+  });
+  registerTools(server, api);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
@@ -177,4 +188,3 @@ main().catch((error) => {
   console.error("Spraay MCP server error:", error);
   process.exit(1);
 });
-
