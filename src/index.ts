@@ -184,7 +184,9 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch((error) => {
-  console.error("Spraay MCP server error:", error);
-  process.exit(1);
-});
+if (process.env.EVM_PRIVATE_KEY) {
+  main().catch((error) => {
+    console.error("Spraay MCP server error:", error);
+    process.exit(1);
+  });
+}
