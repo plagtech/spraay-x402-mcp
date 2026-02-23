@@ -7,11 +7,11 @@ AI agents pay USDC per request. No API keys. No accounts. Just plug in and go.
 ## 9 Tools Available
 
 | Tool | Cost | What It Does |
-|------|------|--------------|
+| --- | --- | --- |
 | `spraay_chat` | $0.005 | AI chat via 200+ models (GPT-4, Claude, Llama, Gemini) |
 | `spraay_models` | $0.001 | List available AI models with pricing |
-| `spraay_batch_execute` | $0.01 | Batch USDC payments to multiple recipients |
-| `spraay_batch_estimate` | $0.001 | Estimate gas for batch payments |
+| `spraay_batch_execute` | $0.01 | Batch payments — any ERC-20 token + native ETH |
+| `spraay_batch_estimate` | $0.001 | Estimate costs for batch payments |
 | `spraay_swap_quote` | $0.002 | Uniswap V3 swap quotes on Base |
 | `spraay_tokens` | $0.001 | List supported tokens on Base |
 | `spraay_prices` | $0.002 | Live onchain token prices (Uniswap V3) |
@@ -21,7 +21,8 @@ AI agents pay USDC per request. No API keys. No accounts. Just plug in and go.
 ## Quick Start
 
 ### 1. Clone and Install
-```bash
+
+```
 git clone https://github.com/plagtech/spraay-x402-mcp.git
 cd spraay-x402-mcp
 npm install
@@ -31,6 +32,7 @@ npm run build
 ### 2. Configure Claude Desktop
 
 Add to your Claude Desktop config:
+
 ```json
 {
   "mcpServers": {
@@ -48,6 +50,7 @@ Add to your Claude Desktop config:
 ### 3. Configure Cursor
 
 Add to `.cursor/mcp.json` in your project:
+
 ```json
 {
   "mcpServers": {
@@ -66,36 +69,49 @@ Add to `.cursor/mcp.json` in your project:
 
 Restart Claude Desktop or Cursor. Then just ask:
 
-- "What is the current price of ETH on Base?" -> calls spraay_prices
-- "Check the USDC balance of vitalik.eth" -> calls spraay_resolve then spraay_balances
-- "Get me a swap quote for 100 USDC to WETH" -> calls spraay_swap_quote
-- "Send 10 USDC each to these 5 addresses" -> calls spraay_batch_execute
+- "What is the current price of ETH on Base?" → calls spraay_prices
+- "Check the USDC balance of vitalik.eth" → calls spraay_resolve then spraay_balances
+- "Get me a swap quote for 100 USDC to WETH" → calls spraay_swap_quote
+- "Send 10 USDC each to these 5 addresses" → calls spraay_batch_execute
+- "Spray 0.01 ETH to 50 wallets" → calls spraay_batch_execute with ETH
 
 ## Environment Variables
 
 | Variable | Required | Description |
-|----------|----------|-------------|
+| --- | --- | --- |
 | EVM_PRIVATE_KEY | Yes | Private key of a wallet with USDC on Base mainnet |
 | SPRAAY_GATEWAY_URL | No | Gateway URL (default: https://gateway.spraay.app) |
 
 ## How Payments Work
+
 ```
-You ask Claude -> Claude calls spraay_prices tool
+You ask Claude -> Claude calls spraay_batch_execute tool
                         |
-            MCP server hits gateway.spraay.app/api/v1/prices
+            MCP server hits gateway.spraay.app/api/v1/batch/execute
                         |
             Gateway returns HTTP 402 + payment requirements
                         |
-            x402 client auto-signs $0.002 USDC payment
+            x402 client auto-signs $0.01 USDC payment
                         |
             Retries request with payment proof
                         |
-            Gateway verifies payment, returns live prices
+            Gateway verifies payment, returns batch calldata
                         |
-            Claude shows you the data
+            Claude shows you the transaction data
 ```
 
 Your wallet pays USDC on Base for each tool call. Payments are instant and verifiable onchain.
+
+## Supported Batch Payment Tokens
+
+Spraay supports **any ERC-20 token** and **native ETH** on Base. Use token symbols or contract addresses:
+
+- `USDC` — USD Coin
+- `USDT` — Tether
+- `DAI` — Dai
+- `EURC` — Euro Coin
+- `ETH` — Native Ether
+- Any ERC-20 contract address (`0x...`)
 
 ## Related
 

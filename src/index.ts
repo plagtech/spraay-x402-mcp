@@ -73,28 +73,37 @@ function registerTools(server: McpServer, api: any) {
 
   server.tool(
     "spraay_batch_execute",
-    "Execute batch USDC payments to multiple recipients in one transaction on Base via Spraay. Returns encoded calldata. Costs $0.01 USDC.",
+    "Execute batch payments to multiple recipients in one transaction on Base via Spraay. Supports any ERC-20 token (USDC, USDT, DAI, etc) or native ETH. Returns encoded calldata. Costs $0.01 USDC.",
     {
-      token: z.string().default("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913").describe("ERC-20 token address on Base (default: USDC)"),
-      recipients: z.array(z.string()).describe("Array of recipient wallet addresses"),
-      amounts: z.array(z.string()).describe("Array of amounts in atomic units (e.g. '1000000' = 1 USDC)"),
-      sender: z.string().describe("Sender wallet address (for approval tx encoding)"),
+      token: z.string().default("USDC").describe("Token symbol (USDC, USDT, DAI, EURC, ETH) or ERC-20 contract address. Use 'ETH' for native ETH. Defaults to USDC."),
+      recipients: z.array(z.object({
+        address: z.string().describe("Recipient wallet address"),
+        amount: z.string().describe("Amount in human-readable units (e.g. '10.00' for 10 USDC, '0.01' for 0.01 ETH)"),
+      })).describe("Array of recipient objects with address and amount"),
+      sender: z.string().optional().describe("Sender wallet address (for approval tx encoding, optional)"),
     },
-    async ({ token, recipients, amounts, sender }) => {
-      const res = await api.post("/api/v1/batch/execute", { token, recipients, amounts, sender });
+    async ({ token, recipients, sender }) => {
+      const res = await api.post("/api/v1/batch/execute", { token, recipients, ...(sender && { sender }) });
       return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
     }
   );
 
   server.tool(
     "spraay_batch_estimate",
-    "Estimate gas costs for a batch payment on Base. Costs $0.001 USDC.",
+    "Estimate costs for a batch payment on Base. Works with any ERC-20 token or native ETH. Costs $0.001 USDC.",
     {
-      recipientCount: z.number().describe("Number of recipients in the batch"),
-      token: z.string().optional().describe("Token address (optional, defaults to USDC)"),
+      token: z.string().default("USDC").describe("Token symbol (USDC, USDT, DAI, EURC, ETH) or contract address. Defaults to USDC."),
+      recipients: z.array(z.object({
+        address: z.string().describe("Recipient wallet address"),
+        amount: z.string().describe("Amount in human-readable units"),
+      })).optional().describe("Array of recipient objects for exact fee calculation"),
+      recipientCount: z.number().optional().describe("Number of recipients (for quick gas estimate without exact amounts)"),
     },
-    async ({ recipientCount, token }) => {
-      const res = await api.post("/api/v1/batch/estimate", { recipientCount, ...(token && { token }) });
+    async ({ token, recipients, recipientCount }) => {
+      const body: any = { token };
+      if (recipients) body.recipients = recipients;
+      if (recipientCount) body.recipientCount = recipientCount;
+      const res = await api.post("/api/v1/batch/estimate", body);
       return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
     }
   );
@@ -125,7 +134,7 @@ function registerTools(server: McpServer, api: any) {
 
   server.tool(
     "spraay_prices",
-    "Get live onchain token prices in USD via Uniswap V3 on Base. Returns prices for 8+ major tokens (WETH, cbBTC, AERO, DEGEN, etc). Costs $0.002 USDC.",
+    "Get live onchain token prices in USD via Uniswap V3 on Base. Returns prices for 8+ major tokens (WETH, cbBTC, AERO, etc). Costs $0.002 USDC.",
     {
       token: z.string().optional().describe("Specific token symbol (e.g. WETH, cbBTC, AERO). Omit for all tokens."),
     },
