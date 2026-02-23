@@ -1,0 +1,264 @@
+{
+  "payload": {
+    "type": "hosted",
+    "stateful": false,
+    "hasAuthAdapter": false,
+    "serverCard": {
+      "serverInfo": {
+        "name": "Spraay x402 Gateway",
+        "version": "1.0.0"
+      },
+      "tools": [
+        {
+          "name": "spraay_chat",
+          "description": "Send a message to 200+ AI models (GPT-4, Claude, Llama, Gemini, etc) via Spraay x402 Gateway. Costs $0.005 USDC per request. OpenAI-compatible.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "model": {
+                "default": "openai/gpt-4o-mini",
+                "description": "Model ID (e.g. openai/gpt-4o-mini, anthropic/claude-3.5-sonnet). Use spraay_models to list all.",
+                "type": "string"
+              },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "system",
+                        "user",
+                        "assistant"
+                      ]
+                    },
+                    "content": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "content"
+                  ]
+                },
+                "description": "Conversation messages in OpenAI format"
+              },
+              "max_tokens": {
+                "description": "Max tokens to generate",
+                "type": "number"
+              },
+              "temperature": {
+                "description": "Sampling temperature (0-2)",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 2
+              }
+            },
+            "required": [
+              "messages"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_models",
+          "description": "List all available AI models with pricing info. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_batch_execute",
+          "description": "Execute batch USDC payments to multiple recipients in one transaction on Base via Spraay. Returns encoded calldata. Costs $0.01 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "default": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "description": "ERC-20 token address on Base (default: USDC)",
+                "type": "string"
+              },
+              "recipients": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Array of recipient wallet addresses"
+              },
+              "amounts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Array of amounts in atomic units (e.g. '1000000' = 1 USDC)"
+              },
+              "sender": {
+                "type": "string",
+                "description": "Sender wallet address (for approval tx encoding)"
+              }
+            },
+            "required": [
+              "recipients",
+              "amounts",
+              "sender"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_batch_estimate",
+          "description": "Estimate gas costs for a batch payment on Base. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "recipientCount": {
+                "type": "number",
+                "description": "Number of recipients in the batch"
+              },
+              "token": {
+                "description": "Token address (optional, defaults to USDC)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "recipientCount"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_swap_quote",
+          "description": "Get optimal swap quotes via Uniswap V3 on Base. Tries all fee tiers + multi-hop through WETH. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "tokenIn": {
+                "type": "string",
+                "description": "Input token contract address on Base"
+              },
+              "tokenOut": {
+                "type": "string",
+                "description": "Output token contract address on Base"
+              },
+              "amountIn": {
+                "type": "string",
+                "description": "Input amount in atomic units (e.g. '1000000' = 1 USDC)"
+              }
+            },
+            "required": [
+              "tokenIn",
+              "tokenOut",
+              "amountIn"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_tokens",
+          "description": "List supported tokens on Base with contract addresses, decimals, and symbols. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_prices",
+          "description": "Get live onchain token prices in USD via Uniswap V3 on Base. Returns prices for 8+ major tokens (WETH, cbBTC, AERO, DEGEN, etc). Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "description": "Specific token symbol (e.g. WETH, cbBTC, AERO). Omit for all tokens.",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_balances",
+          "description": "Get ETH + ERC-20 token balances for any wallet address on Base. Checks 8+ popular tokens or custom list. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Wallet address to check balances for"
+              },
+              "tokens": {
+                "description": "Comma-separated token contract addresses (optional)",
+                "type": "string"
+              },
+              "showAll": {
+                "description": "Set to 'true' to include zero balances",
+                "type": "string"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_resolve",
+          "description": "Resolve ENS names (.eth) and Basenames (.base.eth) to wallet addresses. Also supports reverse resolution. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "ENS name (e.g. vitalik.eth), Basename (e.g. jesse.base.eth), or wallet address for reverse lookup"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        }
+      ],
+      "resources": [],
+      "prompts": []
+    },
+    "source": {
+      "commit": "e4f3cc0d76725711871bee6cc679ff35a6cd3c2d",
+      "branch": "main"
+    }
+  },
+  "artifacts": {
+    "module": "module.js",
+    "sourcemap": "module.js.map"
+  }
+}
