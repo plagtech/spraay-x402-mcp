@@ -1,5 +1,7 @@
-# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
-runtime: "typescript"
+# Smithery configuration — https://smithery.ai/docs/build/project-config/smithery.yaml
+name: "Spraay"
+description: "Full-stack DeFi infrastructure for AI agents on Base. 57 tools for payments, swaps, bridge, payroll, invoicing, escrow, oracle, analytics, AI inference, communication, scheduling, storage, KYC, auth, audit trail & tax. Agents pay USDC per request via x402 protocol. No API keys needed."
+icon: "https://raw.githubusercontent.com/plagtech/spraay-x402-mcp/main/spraay-logo-1000x1000.png"
 
 startCommand:
   type: stdio
@@ -15,7 +17,12 @@ startCommand:
       SPRAAY_GATEWAY_URL:
         type: string
         default: "https://gateway.spraay.app"
+        title: "Gateway URL"
         description: "Spraay x402 Gateway URL (default: https://gateway.spraay.app)"
-  exampleConfig:
-    EVM_PRIVATE_KEY: "0xYourPrivateKeyWithUSDCOnBase"
-    SPRAAY_GATEWAY_URL: "https://gateway.spraay.app"
+  commandFunction:
+    command: node
+    args:
+      - dist/index.js
+    env:
+      EVM_PRIVATE_KEY: "${EVM_PRIVATE_KEY}"
+      SPRAAY_GATEWAY_URL: "${SPRAAY_GATEWAY_URL}"

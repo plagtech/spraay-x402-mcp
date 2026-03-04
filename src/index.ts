@@ -1001,6 +1001,52 @@ async function main() {
   }
 }
 
+// ============================================
+// Smithery-compatible exports
+// ============================================
+
+// Config schema for Smithery UI — tells users what env vars are needed
+export const configSchema = z.object({
+  EVM_PRIVATE_KEY: z.string().describe("Private key of a wallet with USDC on Base mainnet. Used for automatic x402 micropayments."),
+  SPRAAY_GATEWAY_URL: z.string().default("https://gateway.spraay.app").describe("Spraay x402 Gateway URL"),
+});
+
+// Default export: Smithery calls this to create the server
+// When deployed on Smithery, config comes from user input
+// When running locally, falls back to process.env
+export default function createServer({ config }: { config?: z.infer<typeof configSchema> } = {}) {
+  const gw = config?.SPRAAY_GATEWAY_URL || process.env.SPRAAY_GATEWAY_URL || "https://gateway.spraay.app";
+  const evmKey = config?.EVM_PRIVATE_KEY || process.env.EVM_PRIVATE_KEY;
+
+  const server = new McpServer({
+    name: "Spraay",
+    version: "3.1.0",
+  });
+
+  // If we have a real key, create a payment-enabled client
+  // Otherwise, use a mock client (for Smithery scanning)
+  let api: any;
+  if (evmKey) {
+    try {
+      const client = new x402Client();
+      const account = privateKeyToAccount(evmKey as `0x${string}`);
+      const walletClient = createWalletClient({ account, chain: base, transport: http() });
+      const publicClient = createPublicClient({ chain: base, transport: http() });
+      const signer = { ...walletClient, readContract: publicClient.readContract } as any;
+      registerExactEvmScheme(client, { signer });
+      api = wrapAxiosWithPayment(axios.create({ baseURL: gw }), client);
+    } catch {
+      api = axios.create({ baseURL: gw });
+    }
+  } else {
+    api = axios.create({ baseURL: gw });
+  }
+
+  registerTools(server, api);
+  return server.server;
+}
+
+// Direct execution: stdio or http mode
 if (process.env.EVM_PRIVATE_KEY) {
   main().catch((error) => {
     console.error("Spraay MCP server error:", error);
