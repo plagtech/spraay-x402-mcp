@@ -1,10 +1,10 @@
 # Spraay x402 MCP Server
 
-**MCP server for [Spraay x402 Gateway](https://gateway.spraay.app) — connect Claude, Cursor, or any MCP-compatible AI to onchain DeFi, payments, payroll, invoicing, escrow, analytics & 200+ AI models on Base.**
+**MCP server for [Spraay x402 Gateway](https://gateway.spraay.app) — connect Claude, Cursor, or any MCP-compatible AI to onchain DeFi, payments, payroll, invoicing, escrow, AI inference, analytics & 200+ AI models on Base.**
 
 AI agents pay USDC per request via x402 protocol. No API keys. No accounts. Just plug in and go.
 
-## 29 Tools Available
+## 33 Tools Available
 
 ### AI ($0.001–$0.005)
 | Tool | Description | Cost |
@@ -68,6 +68,14 @@ AI agents pay USDC per request via x402 protocol. No API keys. No accounts. Just
 | `spraay_escrow_release` | Release funds to beneficiary | $0.005 |
 | `spraay_escrow_cancel` | Cancel escrow | $0.002 |
 
+### AI Inference ($0.008–$0.01) — NEW
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_inference_classify_address` | AI wallet classification with risk scoring | $0.008 |
+| `spraay_inference_classify_tx` | AI transaction classification and risk analysis | $0.008 |
+| `spraay_inference_explain_contract` | AI smart contract analysis and explanation | $0.01 |
+| `spraay_inference_summarize` | AI intelligence briefing for any address or tx | $0.008 |
+
 ### Data ($0.001–$0.002)
 | Tool | Description | Cost |
 |------|-------------|------|
@@ -125,7 +133,7 @@ npm start
 
 ## How It Works
 
-1. AI agent calls a tool (e.g. `spraay_swap_quote`)
+1. AI agent calls a tool (e.g. `spraay_inference_classify_address`)
 2. MCP server hits the Spraay x402 Gateway
 3. Gateway returns `402 Payment Required` with USDC amount
 4. `@x402/axios` auto-signs a USDC payment from your wallet
