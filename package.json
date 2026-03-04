@@ -30,14 +30,17 @@
     "url": "https://github.com/plagtech/spraay-x402-mcp"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@x402/axios": "^2.4.0",
     "@x402/evm": "^2.4.0",
     "axios": "^1.13.5",
     "dotenv": "^16.4.5",
+    "esbuild": "^0.27.0",
+    "express": "^5.2.1",
     "viem": "^2.46.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
