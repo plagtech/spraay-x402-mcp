@@ -1,7 +1,6 @@
 # Spraay x402 MCP Server
 
 [![smithery badge](https://smithery.ai/badge/Plagtech/Spraay-x402-mcp)](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
-[![npm version](https://img.shields.io/npm/v/spraay-x402-mcp)](https://www.npmjs.com/package/spraay-x402-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Full-stack DeFi infrastructure for AI agents — 57 pay-per-use tools on Base.**
@@ -237,7 +236,6 @@ All payments are micro-transactions ($0.001–$0.02) in USDC on Base mainnet.
 - **Bazaar Discovery**: [gateway.spraay.app/.well-known/x402.json](https://gateway.spraay.app/.well-known/x402.json)
 - **Spraay App**: [spraay.app](https://spraay.app)
 - **Smithery**: [smithery.ai/servers/Plagtech/Spraay-x402-mcp](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
-- **npm**: [@plagtech/spraay-x402-mcp](https://www.npmjs.com/package/spraay-x402-mcp)
 - **x402 Protocol**: [x402.org](https://x402.org)
 
 ## License
