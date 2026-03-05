@@ -3,9 +3,9 @@
 [![smithery badge](https://smithery.ai/badge/Plagtech/Spraay-x402-mcp)](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Full-stack DeFi infrastructure for AI agents — 57 pay-per-use tools on Base.**
+**Full-stack DeFi infrastructure for AI agents — 33 pay-per-use tools on Base.**
 
-Connect Claude, Cursor, or any MCP-compatible AI to onchain payments, token swaps, bridge, payroll, invoicing, escrow, oracle data, analytics, AI inference, webhooks, XMTP messaging, scheduling, IPFS storage, KYC, auth, audit trail, tax, and 200+ AI models.
+Connect Claude, Cursor, or any MCP-compatible AI to onchain payments, token swaps, bridge, payroll, invoicing, escrow, oracle data, analytics, AI inference, and 200+ AI models.
 
 AI agents pay USDC per request via [x402 protocol](https://x402.org). No API keys. No accounts. Just plug in and go.
 
@@ -22,7 +22,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "spraay": {
       "command": "npx",
-      "args": ["-y", "@plagtech/spraay-x402-mcp"],
+      "args": ["-y", "spraay-x402-mcp"],
       "env": {
         "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
       }
@@ -40,7 +40,7 @@ Add to `.cursor/mcp.json`:
   "mcpServers": {
     "spraay": {
       "command": "npx",
-      "args": ["-y", "@plagtech/spraay-x402-mcp"],
+      "args": ["-y", "spraay-x402-mcp"],
       "env": {
         "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
       }
@@ -67,7 +67,7 @@ npm start
 
 ---
 
-## 57 Tools Available
+## 33 Tools Available
 
 ### AI ($0.001–$0.005)
 | Tool | Description | Cost |
@@ -138,59 +138,6 @@ npm start
 | `spraay_inference_classify_tx` | AI transaction classification and risk analysis | $0.008 |
 | `spraay_inference_explain_contract` | AI smart contract analysis and explanation | $0.01 |
 | `spraay_inference_summarize` | AI intelligence briefing for any address or tx | $0.008 |
-
-### Webhooks ($0.001–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_webhook_create` | Register webhook for onchain events | $0.005 |
-| `spraay_webhook_list` | List active webhooks | $0.001 |
-| `spraay_webhook_delete` | Remove a webhook | $0.001 |
-
-### XMTP Messaging ($0.001–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_xmtp_send` | Send encrypted message to any wallet address | $0.005 |
-| `spraay_xmtp_inbox` | Read messages from XMTP inbox | $0.002 |
-| `spraay_xmtp_broadcast` | Broadcast message to multiple addresses | $0.005 |
-
-### Scheduler / Cron ($0.001–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_schedule_create` | Schedule recurring onchain payments | $0.005 |
-| `spraay_schedule_list` | List scheduled jobs | $0.001 |
-| `spraay_schedule_cancel` | Cancel a scheduled job | $0.001 |
-
-### IPFS / Storage ($0.002–$0.01)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_ipfs_pin` | Pin file or JSON to IPFS | $0.01 |
-| `spraay_ipfs_get` | Fetch content from IPFS | $0.002 |
-| `spraay_storage_arweave` | Permanent storage on Arweave | $0.01 |
-
-### KYC / Identity ($0.005–$0.02)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_kyc_verify` | On-demand wallet KYC/KYB check | $0.02 |
-| `spraay_kyc_status` | Check verification status | $0.005 |
-
-### Auth ($0.001–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_auth_session` | Create pay-per-session auth token | $0.005 |
-| `spraay_auth_verify` | Verify session token | $0.001 |
-
-### Audit Trail ($0.002–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_audit_log` | Write immutable audit entry | $0.005 |
-| `spraay_audit_query` | Query audit trail by address or date | $0.002 |
-
-### Tax ($0.005–$0.01)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_tax_calculate` | Calculate crypto tax liability for address | $0.01 |
-| `spraay_tax_report` | Generate tax report (CSV/JSON) | $0.01 |
-| `spraay_tax_cost_basis` | Cost basis lookup for token lots | $0.005 |
 
 ### Data ($0.001–$0.002)
 | Tool | Description | Cost |
