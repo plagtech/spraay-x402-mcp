@@ -1,10 +1,74 @@
 # Spraay x402 MCP Server
 
-**MCP server for [Spraay x402 Gateway](https://gateway.spraay.app) — connect Claude, Cursor, or any MCP-compatible AI to onchain DeFi, payments, payroll, invoicing, escrow, AI inference, analytics & 200+ AI models on Base.**
+[![smithery badge](https://smithery.ai/badge/Plagtech/Spraay-x402-mcp)](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
+[![npm version](https://img.shields.io/npm/v/@plagtech/spraay-x402-mcp)](https://www.npmjs.com/package/@plagtech/spraay-x402-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-AI agents pay USDC per request via x402 protocol. No API keys. No accounts. Just plug in and go.
+**Full-stack DeFi infrastructure for AI agents — 57 pay-per-use tools on Base.**
 
-## 33 Tools Available
+Connect Claude, Cursor, or any MCP-compatible AI to onchain payments, token swaps, bridge, payroll, invoicing, escrow, oracle data, analytics, AI inference, webhooks, XMTP messaging, scheduling, IPFS storage, KYC, auth, audit trail, tax, and 200+ AI models.
+
+AI agents pay USDC per request via [x402 protocol](https://x402.org). No API keys. No accounts. Just plug in and go.
+
+---
+
+## Quick Start
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "spraay": {
+      "command": "npx",
+      "args": ["-y", "@plagtech/spraay-x402-mcp"],
+      "env": {
+        "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "spraay": {
+      "command": "npx",
+      "args": ["-y", "@plagtech/spraay-x402-mcp"],
+      "env": {
+        "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
+      }
+    }
+  }
+}
+```
+
+### Smithery
+
+```bash
+smithery mcp add Plagtech/Spraay-x402-mcp
+```
+
+### From Source
+
+```bash
+git clone https://github.com/plagtech/spraay-x402-mcp
+cd spraay-x402-mcp
+npm install
+echo "EVM_PRIVATE_KEY=0xYOUR_KEY" > .env
+npm start
+```
+
+---
+
+## 57 Tools Available
 
 ### AI ($0.001–$0.005)
 | Tool | Description | Cost |
@@ -68,13 +132,66 @@ AI agents pay USDC per request via x402 protocol. No API keys. No accounts. Just
 | `spraay_escrow_release` | Release funds to beneficiary | $0.005 |
 | `spraay_escrow_cancel` | Cancel escrow | $0.002 |
 
-### AI Inference ($0.008–$0.01) — NEW
+### AI Inference ($0.008–$0.01)
 | Tool | Description | Cost |
 |------|-------------|------|
 | `spraay_inference_classify_address` | AI wallet classification with risk scoring | $0.008 |
 | `spraay_inference_classify_tx` | AI transaction classification and risk analysis | $0.008 |
 | `spraay_inference_explain_contract` | AI smart contract analysis and explanation | $0.01 |
 | `spraay_inference_summarize` | AI intelligence briefing for any address or tx | $0.008 |
+
+### Webhooks ($0.001–$0.005)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_webhook_create` | Register webhook for onchain events | $0.005 |
+| `spraay_webhook_list` | List active webhooks | $0.001 |
+| `spraay_webhook_delete` | Remove a webhook | $0.001 |
+
+### XMTP Messaging ($0.001–$0.005)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_xmtp_send` | Send encrypted message to any wallet address | $0.005 |
+| `spraay_xmtp_inbox` | Read messages from XMTP inbox | $0.002 |
+| `spraay_xmtp_broadcast` | Broadcast message to multiple addresses | $0.005 |
+
+### Scheduler / Cron ($0.001–$0.005)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_schedule_create` | Schedule recurring onchain payments | $0.005 |
+| `spraay_schedule_list` | List scheduled jobs | $0.001 |
+| `spraay_schedule_cancel` | Cancel a scheduled job | $0.001 |
+
+### IPFS / Storage ($0.002–$0.01)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_ipfs_pin` | Pin file or JSON to IPFS | $0.01 |
+| `spraay_ipfs_get` | Fetch content from IPFS | $0.002 |
+| `spraay_storage_arweave` | Permanent storage on Arweave | $0.01 |
+
+### KYC / Identity ($0.005–$0.02)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_kyc_verify` | On-demand wallet KYC/KYB check | $0.02 |
+| `spraay_kyc_status` | Check verification status | $0.005 |
+
+### Auth ($0.001–$0.005)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_auth_session` | Create pay-per-session auth token | $0.005 |
+| `spraay_auth_verify` | Verify session token | $0.001 |
+
+### Audit Trail ($0.002–$0.005)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_audit_log` | Write immutable audit entry | $0.005 |
+| `spraay_audit_query` | Query audit trail by address or date | $0.002 |
+
+### Tax ($0.005–$0.01)
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_tax_calculate` | Calculate crypto tax liability for address | $0.01 |
+| `spraay_tax_report` | Generate tax report (CSV/JSON) | $0.01 |
+| `spraay_tax_cost_basis` | Cost basis lookup for token lots | $0.005 |
 
 ### Data ($0.001–$0.002)
 | Tool | Description | Cost |
@@ -83,64 +200,20 @@ AI agents pay USDC per request via x402 protocol. No API keys. No accounts. Just
 | `spraay_balances` | ETH + ERC-20 balances for any wallet | $0.002 |
 | `spraay_resolve` | ENS / Basename resolution | $0.001 |
 
-## Quick Start
-
-### Claude Desktop
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "spraay": {
-      "command": "npx",
-      "args": ["-y", "@plagtech/spraay-x402-mcp"],
-      "env": {
-        "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
-      }
-    }
-  }
-}
-```
-
-### Cursor
-
-Add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "spraay": {
-      "command": "npx",
-      "args": ["-y", "@plagtech/spraay-x402-mcp"],
-      "env": {
-        "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
-      }
-    }
-  }
-}
-```
-
-### From Source
-
-```bash
-git clone https://github.com/plagtech/spraay-x402-mcp
-cd spraay-x402-mcp
-npm install
-echo "EVM_PRIVATE_KEY=0xYOUR_KEY" > .env
-npm start
-```
+---
 
 ## How It Works
 
-1. AI agent calls a tool (e.g. `spraay_inference_classify_address`)
-2. MCP server hits the Spraay x402 Gateway
+1. AI agent calls a tool (e.g. `spraay_batch_execute`)
+2. MCP server hits the [Spraay x402 Gateway](https://gateway.spraay.app)
 3. Gateway returns `402 Payment Required` with USDC amount
-4. `@x402/axios` auto-signs a USDC payment from your wallet
-5. Gateway validates payment, returns data
+4. `@x402/axios` auto-signs a USDC micropayment from your wallet
+5. Gateway validates payment and returns data
 6. Agent gets the response
 
-All payments are micro-transactions ($0.001–$0.02) in USDC on Base.
+All payments are micro-transactions ($0.001–$0.02) in USDC on Base mainnet.
+
+---
 
 ## Requirements
 
@@ -153,14 +226,18 @@ All payments are micro-transactions ($0.001–$0.02) in USDC on Base.
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `EVM_PRIVATE_KEY` | Yes | — | Wallet private key for USDC payments |
-| `SPRAAY_GATEWAY_URL` | No | `https://gateway.spraay.app` | Gateway URL |
+| `SPRAAY_GATEWAY_URL` | No | `https://gateway.spraay.app` | Override gateway URL |
+
+---
 
 ## Links
 
+- **MCP Server**: [mcp.spraay.app](https://mcp.spraay.app)
 - **Gateway**: [gateway.spraay.app](https://gateway.spraay.app)
-- **Discovery**: [gateway.spraay.app/.well-known/x402.json](https://gateway.spraay.app/.well-known/x402.json)
+- **Bazaar Discovery**: [gateway.spraay.app/.well-known/x402.json](https://gateway.spraay.app/.well-known/x402.json)
 - **Spraay App**: [spraay.app](https://spraay.app)
-- **GitHub**: [github.com/plagtech/spraay-x402-mcp](https://github.com/plagtech/spraay-x402-mcp)
+- **Smithery**: [smithery.ai/servers/Plagtech/Spraay-x402-mcp](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
+- **npm**: [@plagtech/spraay-x402-mcp](https://www.npmjs.com/package/@plagtech/spraay-x402-mcp)
 - **x402 Protocol**: [x402.org](https://x402.org)
 
 ## License
