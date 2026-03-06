@@ -3,10 +3,30 @@
     "type": "hosted",
     "stateful": false,
     "hasAuthAdapter": false,
+    "configSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "EVM_PRIVATE_KEY": {
+          "type": "string",
+          "description": "Private key of a wallet with USDC on Base mainnet. Used for automatic x402 micropayments."
+        },
+        "SPRAAY_GATEWAY_URL": {
+          "default": "https://gateway.spraay.app",
+          "description": "Spraay x402 Gateway URL",
+          "type": "string"
+        }
+      },
+      "required": [
+        "EVM_PRIVATE_KEY",
+        "SPRAAY_GATEWAY_URL"
+      ],
+      "additionalProperties": false
+    },
     "serverCard": {
       "serverInfo": {
         "name": "Spraay x402 Gateway",
-        "version": "1.0.0"
+        "version": "3.1.0"
       },
       "tools": [
         {
@@ -20,43 +40,17 @@
                 "description": "Model ID (e.g. openai/gpt-4o-mini, anthropic/claude-3.5-sonnet). Use spraay_models to list all.",
                 "type": "string"
               },
-              "messages": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "role": {
-                      "type": "string",
-                      "enum": [
-                        "system",
-                        "user",
-                        "assistant"
-                      ]
-                    },
-                    "content": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "role",
-                    "content"
-                  ]
-                },
-                "description": "Conversation messages in OpenAI format"
+              "message": {
+                "type": "string",
+                "description": "User message to send"
               },
-              "max_tokens": {
-                "description": "Max tokens to generate",
-                "type": "number"
-              },
-              "temperature": {
-                "description": "Sampling temperature (0-2)",
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2
+              "systemPrompt": {
+                "description": "Optional system prompt",
+                "type": "string"
               }
             },
             "required": [
-              "messages"
+              "message"
             ],
             "$schema": "http://json-schema.org/draft-07/schema#"
           },
@@ -66,7 +60,7 @@
         },
         {
           "name": "spraay_models",
-          "description": "List all available AI models with pricing info. Costs $0.001 USDC.",
+          "description": "List all available AI models on the Spraay x402 Gateway. Costs $0.001 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {},
@@ -78,14 +72,13 @@
         },
         {
           "name": "spraay_batch_execute",
-          "description": "Execute batch USDC payments to multiple recipients in one transaction on Base via Spraay. Returns encoded calldata. Costs $0.01 USDC.",
+          "description": "Execute batch payment to up to 200 recipients in one transaction via Spraay protocol. Supports any ERC-20 token or native ETH on Base. Costs $0.01 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {
               "token": {
-                "default": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-                "description": "ERC-20 token address on Base (default: USDC)",
-                "type": "string"
+                "type": "string",
+                "description": "Token symbol (e.g. USDC, ETH, WETH, DAI) or contract address"
               },
               "recipients": {
                 "type": "array",
@@ -99,14 +92,15 @@
                 "items": {
                   "type": "string"
                 },
-                "description": "Array of amounts in atomic units (e.g. '1000000' = 1 USDC)"
+                "description": "Array of amounts (in token units, e.g. '100' for 100 USDC)"
               },
               "sender": {
                 "type": "string",
-                "description": "Sender wallet address (for approval tx encoding)"
+                "description": "Sender wallet address"
               }
             },
             "required": [
+              "token",
               "recipients",
               "amounts",
               "sender"
@@ -119,16 +113,16 @@
         },
         {
           "name": "spraay_batch_estimate",
-          "description": "Estimate gas costs for a batch payment on Base. Costs $0.001 USDC.",
+          "description": "Estimate gas cost for a batch payment. Costs $0.001 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {
               "recipientCount": {
                 "type": "number",
-                "description": "Number of recipients in the batch"
+                "description": "Number of recipients"
               },
               "token": {
-                "description": "Token address (optional, defaults to USDC)",
+                "description": "Token symbol (default: USDC)",
                 "type": "string"
               }
             },
@@ -143,21 +137,21 @@
         },
         {
           "name": "spraay_swap_quote",
-          "description": "Get optimal swap quotes via Uniswap V3 on Base. Tries all fee tiers + multi-hop through WETH. Costs $0.002 USDC.",
+          "description": "Get a swap quote from Uniswap V3 on Base. Returns expected output amount and price impact. Costs $0.002 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {
               "tokenIn": {
                 "type": "string",
-                "description": "Input token contract address on Base"
+                "description": "Input token symbol (e.g. USDC, WETH)"
               },
               "tokenOut": {
                 "type": "string",
-                "description": "Output token contract address on Base"
+                "description": "Output token symbol"
               },
               "amountIn": {
                 "type": "string",
-                "description": "Input amount in atomic units (e.g. '1000000' = 1 USDC)"
+                "description": "Amount to swap (in smallest units or human-readable)"
               }
             },
             "required": [
@@ -172,8 +166,8 @@
           }
         },
         {
-          "name": "spraay_tokens",
-          "description": "List supported tokens on Base with contract addresses, decimals, and symbols. Costs $0.001 USDC.",
+          "name": "spraay_swap_tokens",
+          "description": "List all tokens available for swapping on Spraay/Uniswap V3. Costs $0.001 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {},
@@ -184,13 +178,1353 @@
           }
         },
         {
-          "name": "spraay_prices",
-          "description": "Get live onchain token prices in USD via Uniswap V3 on Base. Returns prices for 8+ major tokens (WETH, cbBTC, AERO, DEGEN, etc). Costs $0.002 USDC.",
+          "name": "spraay_swap_execute",
+          "description": "Execute a token swap via Uniswap V3. Returns unsigned transaction data for the caller to sign. Costs $0.01 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "tokenIn": {
+                "type": "string",
+                "description": "Input token symbol"
+              },
+              "tokenOut": {
+                "type": "string",
+                "description": "Output token symbol"
+              },
+              "amountIn": {
+                "type": "string",
+                "description": "Amount to swap"
+              },
+              "recipient": {
+                "type": "string",
+                "description": "Recipient address for swap output"
+              },
+              "slippage": {
+                "description": "Slippage tolerance (default 0.5%)",
+                "type": "number"
+              }
+            },
+            "required": [
+              "tokenIn",
+              "tokenOut",
+              "amountIn",
+              "recipient"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_oracle_prices",
+          "description": "Get on-chain token prices with confidence scores via Uniswap V3 QuoterV2. Costs $0.003 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "tokens": {
+                "description": "Comma-separated token symbols (e.g. ETH,cbBTC). Omit for all.",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_oracle_gas",
+          "description": "Get current gas prices on Base in gwei. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_oracle_fx",
+          "description": "Get stablecoin exchange rates with depeg detection. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "base": {
+                "description": "Base stablecoin (default: USDC)",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_bridge_quote",
+          "description": "Get a cross-chain bridge quote via LI.FI. Supports 8+ chains. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "fromChain": {
+                "type": "string",
+                "description": "Source chain (e.g. base, ethereum, arbitrum)"
+              },
+              "toChain": {
+                "type": "string",
+                "description": "Destination chain"
+              },
+              "token": {
+                "type": "string",
+                "description": "Token symbol (e.g. USDC)"
+              },
+              "amount": {
+                "type": "string",
+                "description": "Amount in smallest units"
+              },
+              "fromAddress": {
+                "type": "string",
+                "description": "Sender address"
+              }
+            },
+            "required": [
+              "fromChain",
+              "toChain",
+              "token",
+              "amount",
+              "fromAddress"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_bridge_chains",
+          "description": "List all supported bridge chains. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_payroll_execute",
+          "description": "Execute payroll batch payment via Spraay V2. Supports up to 200 employees. Costs $0.02 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {
               "token": {
-                "description": "Specific token symbol (e.g. WETH, cbBTC, AERO). Omit for all tokens.",
+                "type": "string",
+                "description": "Payment token (e.g. USDC, USDT, DAI)"
+              },
+              "sender": {
+                "type": "string",
+                "description": "Sender/employer wallet address"
+              },
+              "employees": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "address": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "address",
+                    "amount"
+                  ]
+                },
+                "description": "Array of {address, amount, label?}"
+              }
+            },
+            "required": [
+              "token",
+              "sender",
+              "employees"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_payroll_estimate",
+          "description": "Estimate payroll gas and fees. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "employeeCount": {
+                "type": "number",
+                "description": "Number of employees"
+              },
+              "token": {
+                "description": "Payment token (default: USDC)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "employeeCount"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_payroll_tokens",
+          "description": "List supported payroll stablecoins. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_invoice_create",
+          "description": "Create an invoice with pre-encoded payment transaction. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "creator": {
+                "type": "string",
+                "description": "Invoice creator address"
+              },
+              "token": {
+                "type": "string",
+                "description": "Payment token (e.g. USDC)"
+              },
+              "amount": {
+                "type": "string",
+                "description": "Invoice amount"
+              },
+              "recipient": {
+                "description": "Payment recipient (defaults to creator)",
+                "type": "string"
+              },
+              "memo": {
+                "description": "Invoice memo/description",
+                "type": "string"
+              },
+              "dueDate": {
+                "description": "Due date (ISO 8601)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "creator",
+              "token",
+              "amount"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_invoice_list",
+          "description": "List invoices by address with optional status filter. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Address to list invoices for"
+              },
+              "status": {
+                "description": "Filter by status (pending, paid, overdue, cancelled)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_invoice_get",
+          "description": "Look up a specific invoice by ID. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Invoice ID (e.g. INV-A1B2)"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_analytics_wallet",
+          "description": "Get comprehensive wallet profile including balances, age, classification, and portfolio breakdown. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Wallet address to analyze"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_analytics_txhistory",
+          "description": "Get decoded transaction history for any address on Base. Costs $0.003 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Wallet address"
+              },
+              "limit": {
+                "description": "Max transactions to return (default 10)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_escrow_create",
+          "description": "Create a conditional escrow with optional milestones, arbiter, and expiry. Costs $0.008 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "depositor": {
+                "type": "string",
+                "description": "Depositor/client address"
+              },
+              "beneficiary": {
+                "type": "string",
+                "description": "Beneficiary/freelancer address"
+              },
+              "token": {
+                "type": "string",
+                "description": "Token symbol (e.g. USDC)"
+              },
+              "amount": {
+                "type": "string",
+                "description": "Escrow amount"
+              },
+              "arbiter": {
+                "description": "Optional arbiter address",
+                "type": "string"
+              },
+              "conditions": {
+                "description": "Milestone conditions",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "expiresIn": {
+                "description": "Expiry in hours",
+                "type": "number"
+              }
+            },
+            "required": [
+              "depositor",
+              "beneficiary",
+              "token",
+              "amount"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_escrow_list",
+          "description": "List escrows by address with optional status filter. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Address to list escrows for (depositor, beneficiary, or arbiter)"
+              },
+              "status": {
+                "description": "Filter by status",
+                "type": "string"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_escrow_get",
+          "description": "Get escrow details and status by ID. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Escrow ID (e.g. ESC-A1B2)"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_escrow_fund",
+          "description": "Mark an escrow as funded. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "escrowId": {
+                "type": "string",
+                "description": "Escrow ID to fund"
+              }
+            },
+            "required": [
+              "escrowId"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_escrow_release",
+          "description": "Release escrow funds to beneficiary. Returns unsigned transfer tx. Depositor or arbiter only. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "escrowId": {
+                "type": "string",
+                "description": "Escrow ID to release"
+              },
+              "caller": {
+                "type": "string",
+                "description": "Caller address (must be depositor or arbiter)"
+              }
+            },
+            "required": [
+              "escrowId",
+              "caller"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_escrow_cancel",
+          "description": "Cancel an escrow. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "escrowId": {
+                "type": "string",
+                "description": "Escrow ID to cancel"
+              },
+              "caller": {
+                "type": "string",
+                "description": "Caller address"
+              }
+            },
+            "required": [
+              "escrowId",
+              "caller"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_classify_address",
+          "description": "AI-powered wallet classification with risk scoring. Classifies addresses as whale, retail, MEV bot, etc. Costs $0.008 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Ethereum/Base address to classify"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_classify_tx",
+          "description": "AI-powered transaction classification with risk scoring. Decodes and analyzes any Base transaction. Costs $0.008 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "hash": {
+                "type": "string",
+                "description": "Transaction hash to classify"
+              }
+            },
+            "required": [
+              "hash"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_explain_contract",
+          "description": "AI-powered smart contract analysis. Explains what a verified contract does, its functions, and security properties. Costs $0.01 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Contract address to analyze"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_summarize",
+          "description": "AI intelligence briefing for any address or transaction. Returns structured risk assessment and actionable insights. Costs $0.008 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "target": {
+                "type": "string",
+                "description": "Address or tx hash to summarize"
+              },
+              "context": {
+                "description": "Context hint (defi, nft, governance, etc)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "target"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_notify_email",
+          "description": "Send email notification for payment confirmations, alerts, or receipts. Costs $0.003 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "description": "Recipient email address"
+              },
+              "subject": {
+                "description": "Email subject line",
+                "type": "string"
+              },
+              "body": {
+                "type": "string",
+                "description": "Email body content"
+              },
+              "cc": {
+                "description": "CC email address",
+                "type": "string"
+              },
+              "replyTo": {
+                "description": "Reply-to address",
+                "type": "string"
+              }
+            },
+            "required": [
+              "to",
+              "body"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_notify_sms",
+          "description": "Send SMS notification for payment alerts. E.164 phone format required. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "description": "Phone number in E.164 format (e.g. +14155551234)"
+              },
+              "body": {
+                "type": "string",
+                "description": "SMS message body (max 1600 chars)"
+              }
+            },
+            "required": [
+              "to",
+              "body"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_notify_status",
+          "description": "Check delivery status of an email or SMS notification. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Notification ID (e.g. ntf_123)"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_webhook_register",
+          "description": "Register a webhook endpoint to receive payment, escrow, swap, and other events. Costs $0.003 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "Webhook URL to receive POST events"
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Events to subscribe to (e.g. payment.sent, escrow.funded, swap.completed)"
+              }
+            },
+            "required": [
+              "url",
+              "events"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_webhook_test",
+          "description": "Send a test event to a registered webhook to verify delivery. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "webhookId": {
+                "type": "string",
+                "description": "Webhook ID to test"
+              }
+            },
+            "required": [
+              "webhookId"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_webhook_list",
+          "description": "List all registered webhooks with status and event subscriptions. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "description": "Filter by status (active, paused, failed)",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_webhook_delete",
+          "description": "Delete a registered webhook. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "webhookId": {
+                "type": "string",
+                "description": "Webhook ID to delete"
+              }
+            },
+            "required": [
+              "webhookId"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_xmtp_send",
+          "description": "Send an encrypted XMTP message to any Ethereum address. Costs $0.003 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {
+                "type": "string",
+                "description": "Recipient Ethereum address"
+              },
+              "content": {
+                "type": "string",
+                "description": "Message content"
+              },
+              "contentType": {
+                "description": "Content type (default: text/plain)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "to",
+              "content"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_xmtp_inbox",
+          "description": "Read XMTP inbox messages for an Ethereum address. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Ethereum address to check inbox for"
+              },
+              "limit": {
+                "description": "Max messages to return (default 20)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_rpc_call",
+          "description": "Make a premium multi-chain JSON-RPC call via Alchemy/Helius. Supports Base, Ethereum, Arbitrum, Polygon, and more. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "chain": {
+                "type": "string",
+                "description": "Chain ID (e.g. base, ethereum, arbitrum, polygon, solana)"
+              },
+              "method": {
+                "type": "string",
+                "description": "RPC method (e.g. eth_getBalance, eth_blockNumber, eth_call)"
+              },
+              "params": {
+                "description": "RPC method parameters",
+                "type": "array",
+                "items": {}
+              }
+            },
+            "required": [
+              "chain",
+              "method"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_rpc_chains",
+          "description": "List supported RPC chains and allowed methods. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_storage_pin",
+          "description": "Pin content to IPFS or Arweave for permanent decentralized storage. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "string",
+                "description": "Content to pin (JSON string, base64, or text)"
+              },
+              "contentType": {
+                "description": "MIME type (default: application/octet-stream)",
+                "type": "string"
+              },
+              "provider": {
+                "description": "Storage provider: ipfs or arweave (default: ipfs)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "data"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_storage_get",
+          "description": "Retrieve pinned content by CID from IPFS/Arweave. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "cid": {
+                "type": "string",
+                "description": "Content identifier (CID) to retrieve"
+              }
+            },
+            "required": [
+              "cid"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_storage_status",
+          "description": "Check pin status for a storage request. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Pin request ID (e.g. pin_123)"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_cron_create",
+          "description": "Create a scheduled job for recurring payments, DCA, reminders, or any gateway action. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "description": "Action to schedule (e.g. batch.execute, swap.execute, notify.email, payroll.execute)"
+              },
+              "schedule": {
+                "type": "string",
+                "description": "Cron expression (5-part: min hour dom mon dow)"
+              },
+              "payload": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {},
+                "description": "Payload for the action"
+              },
+              "maxRuns": {
+                "description": "Max number of executions (omit for unlimited)",
+                "type": "number"
+              }
+            },
+            "required": [
+              "action",
+              "schedule",
+              "payload"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_cron_list",
+          "description": "List scheduled jobs with optional status/action filter. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "description": "Filter by status (active, paused, cancelled, completed)",
+                "type": "string"
+              },
+              "action": {
+                "description": "Filter by action type",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_cron_cancel",
+          "description": "Cancel a scheduled job. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "jobId": {
+                "type": "string",
+                "description": "Job ID to cancel"
+              }
+            },
+            "required": [
+              "jobId"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_logs_ingest",
+          "description": "Ingest structured logs for debugging agent workflows. Max 100 entries per batch. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "entries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "level": {
+                      "type": "string",
+                      "description": "Log level: debug, info, warn, error"
+                    },
+                    "service": {
+                      "type": "string",
+                      "description": "Service name (e.g. batch-agent, swap-bot)"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Log message"
+                    },
+                    "data": {
+                      "description": "Additional structured data",
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "level",
+                    "service",
+                    "message"
+                  ]
+                },
+                "description": "Array of log entries"
+              }
+            },
+            "required": [
+              "entries"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_logs_query",
+          "description": "Query structured logs by service, level, and time range. Costs $0.003 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "service": {
+                "description": "Filter by service name",
+                "type": "string"
+              },
+              "level": {
+                "description": "Filter by level (debug, info, warn, error)",
+                "type": "string"
+              },
+              "since": {
+                "description": "Start time (ISO 8601)",
+                "type": "string"
+              },
+              "limit": {
+                "description": "Max results (default 50, max 500)",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_kyc_verify",
+          "description": "Initiate KYC/KYB verification for compliance-gated payments. Costs $0.05 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Ethereum address to verify"
+              },
+              "type": {
+                "description": "Verification type: individual or business (default: individual)",
+                "type": "string"
+              },
+              "level": {
+                "description": "Verification level: basic, enhanced, or full (default: basic)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_kyc_status",
+          "description": "Check KYC verification status by ID or address. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "KYC record ID",
+                "type": "string"
+              },
+              "address": {
+                "description": "Ethereum address (alternative lookup)",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_auth_session",
+          "description": "Create an authenticated session with scoped permissions and TTL. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "Ethereum address to create session for"
+              },
+              "permissions": {
+                "description": "Scoped permissions (e.g. batch:execute, swap:execute). Omit for all.",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ttlSeconds": {
+                "description": "Session TTL in seconds (default 3600, max 86400)",
+                "type": "number"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_auth_verify",
+          "description": "Verify a session token and check its permissions. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string",
+                "description": "Session token (spr_...)"
+              }
+            },
+            "required": [
+              "token"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_audit_log",
+          "description": "Record an immutable audit trail entry for payments, escrows, compliance actions. Costs $0.001 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string",
+                "description": "Action type (e.g. payment.sent, escrow.created, kyc.completed)"
+              },
+              "actor": {
+                "type": "string",
+                "description": "Actor address"
+              },
+              "resource": {
+                "type": "string",
+                "description": "Resource identifier (e.g. batch_123, ESC-A1B2)"
+              },
+              "details": {
+                "description": "Additional details",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              "txHash": {
+                "description": "Related transaction hash",
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "actor",
+              "resource"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_audit_query",
+          "description": "Query audit trail by actor, action, resource, or time range. Costs $0.005 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "actor": {
+                "description": "Filter by actor address",
+                "type": "string"
+              },
+              "action": {
+                "description": "Filter by action type",
+                "type": "string"
+              },
+              "resource": {
+                "description": "Filter by resource (partial match)",
+                "type": "string"
+              },
+              "since": {
+                "description": "Start time (ISO 8601)",
+                "type": "string"
+              },
+              "until": {
+                "description": "End time (ISO 8601)",
+                "type": "string"
+              },
+              "limit": {
+                "description": "Max results (default 50)",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_tax_calculate",
+          "description": "Calculate crypto tax gain/loss using FIFO method. Supports up to 500 transactions per batch. Costs $0.01 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "transactions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "description": "Transaction type: swap, send, receive, bridge, payroll, escrow_release",
+                      "type": "string"
+                    },
+                    "asset": {
+                      "description": "Asset symbol (e.g. ETH)",
+                      "type": "string"
+                    },
+                    "amount": {
+                      "description": "Amount",
+                      "type": "number"
+                    },
+                    "costBasisUsd": {
+                      "description": "Cost basis in USD",
+                      "type": "number"
+                    },
+                    "proceedsUsd": {
+                      "description": "Proceeds in USD",
+                      "type": "number"
+                    },
+                    "holdingDays": {
+                      "description": "Days held (for short/long term classification)",
+                      "type": "number"
+                    },
+                    "txHash": {
+                      "description": "Transaction hash",
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "description": "Transaction timestamp (ISO 8601)",
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Array of transaction objects"
+              }
+            },
+            "required": [
+              "transactions"
+            ],
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_tax_report",
+          "description": "Retrieve a previously calculated tax report. Costs $0.02 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "reportId": {
+                "description": "Report ID from tax/calculate",
+                "type": "string"
+              }
+            },
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "spraay_prices",
+          "description": "Get live on-chain token prices on Base. Costs $0.002 USDC.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "token": {
+                "description": "Specific token symbol (e.g. WETH). Omit for all.",
                 "type": "string"
               }
             },
@@ -202,20 +1536,20 @@
         },
         {
           "name": "spraay_balances",
-          "description": "Get ETH + ERC-20 token balances for any wallet address on Base. Checks 8+ popular tokens or custom list. Costs $0.002 USDC.",
+          "description": "Get ETH + ERC-20 token balances for any wallet on Base. Costs $0.002 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {
               "address": {
                 "type": "string",
-                "description": "Wallet address to check balances for"
+                "description": "Wallet address to check"
               },
               "tokens": {
-                "description": "Comma-separated token contract addresses (optional)",
+                "description": "Comma-separated custom token addresses",
                 "type": "string"
               },
               "showAll": {
-                "description": "Set to 'true' to include zero balances",
+                "description": "'true' to include zero balances",
                 "type": "string"
               }
             },
@@ -230,13 +1564,13 @@
         },
         {
           "name": "spraay_resolve",
-          "description": "Resolve ENS names (.eth) and Basenames (.base.eth) to wallet addresses. Also supports reverse resolution. Costs $0.001 USDC.",
+          "description": "Resolve ENS names (.eth) and Basenames (.base.eth) to wallet addresses. Supports reverse lookup. Costs $0.001 USDC.",
           "inputSchema": {
             "type": "object",
             "properties": {
               "name": {
                 "type": "string",
-                "description": "ENS name (e.g. vitalik.eth), Basename (e.g. jesse.base.eth), or wallet address for reverse lookup"
+                "description": "ENS name, Basename, or address for reverse lookup"
               }
             },
             "required": [
@@ -253,12 +1587,13 @@
       "prompts": []
     },
     "source": {
-      "commit": "e4f3cc0d76725711871bee6cc679ff35a6cd3c2d",
+      "commit": "b1a541780d6f835be14d420de11b4ce8e57ac71e",
       "branch": "main"
     }
   },
   "artifacts": {
     "module": "module.js",
     "sourcemap": "module.js.map"
-  }
+  },
+  "name": "Spraay"
 }

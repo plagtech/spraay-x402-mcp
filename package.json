@@ -1,6 +1,6 @@
 {
   "name": "spraay-x402-mcp",
-  "version": "1.0.0",
+  "version": "3.1.0",
   "module": "src/index.ts",
   "description": "MCP server for Spraay x402 Gateway — AI models, batch payments, DeFi data & onchain intelligence on Base. Pay USDC per request.",
   "main": "dist/index.js",
