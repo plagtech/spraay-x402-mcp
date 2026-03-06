@@ -64,6 +64,7 @@ function registerTools(server: McpServer, api: any) {
       message: z.string().min(1).max(32000).describe("User message to send to the model"),
       systemPrompt: z.string().max(8000).optional().describe("Optional system prompt to set model behavior and context"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ model, message, systemPrompt }) => {
       try {
         const messages: any[] = [];
@@ -81,6 +82,7 @@ function registerTools(server: McpServer, api: any) {
     "spraay_models",
     "List all 200+ AI models available on the Spraay x402 Gateway. Returns model IDs, providers, and context window sizes. Costs $0.001 USDC.",
     {},
+    { readOnlyHint: true, openWorldHint: true },
     async () => {
       try {
         const res = await api.get("/api/v1/models");
@@ -104,6 +106,7 @@ function registerTools(server: McpServer, api: any) {
       amounts: z.array(z.string().min(1)).min(1).max(200).describe("Array of amounts in token units (e.g. '100' for 100 USDC). Must match recipients length."),
       sender: ethAddr.describe("Sender wallet address that will sign the transaction"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ token, recipients, amounts, sender }) => {
       try {
         const res = await api.post("/api/v1/batch/execute", { token, recipients, amounts, sender });
@@ -121,6 +124,7 @@ function registerTools(server: McpServer, api: any) {
       recipientCount: z.number().min(1).max(200).describe("Number of recipients (1-200)"),
       token: z.string().optional().describe("Token symbol (default: USDC)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ recipientCount, token }) => {
       try {
         const res = await api.post("/api/v1/batch/estimate", { recipientCount, ...(token && { token }) });
@@ -143,6 +147,7 @@ function registerTools(server: McpServer, api: any) {
       tokenOut: z.string().min(1).describe("Output token symbol (e.g. 'WETH', 'USDC') or contract address"),
       amountIn: z.string().min(1).describe("Amount to swap in human-readable units (e.g. '1000' for 1000 USDC)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ tokenIn, tokenOut, amountIn }) => {
       try {
         const res = await api.get("/api/v1/swap/quote", { params: { tokenIn, tokenOut, amountIn } });
@@ -157,6 +162,7 @@ function registerTools(server: McpServer, api: any) {
     "spraay_swap_tokens",
     "List all tokens available for swapping on Spraay via Uniswap V3 on Base. Returns symbols, addresses, and decimals. Costs $0.001 USDC.",
     {},
+    { readOnlyHint: true, openWorldHint: true },
     async () => {
       try {
         const res = await api.get("/api/v1/swap/tokens");
@@ -177,6 +183,7 @@ function registerTools(server: McpServer, api: any) {
       recipient: ethAddr.describe("Recipient address for swap output (e.g. '0xYourWallet')"),
       slippage: z.number().min(0.01).max(50).optional().describe("Slippage tolerance in percent (default: 0.5, max: 50)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ tokenIn, tokenOut, amountIn, recipient, slippage }) => {
       try {
         const res = await api.post("/api/v1/swap/execute", { tokenIn, tokenOut, amountIn, recipient, ...(slippage && { slippage }) });
@@ -197,6 +204,7 @@ function registerTools(server: McpServer, api: any) {
     {
       tokens: z.string().max(500).optional().describe("Comma-separated token symbols (e.g. 'ETH,cbBTC,USDT'). Omit to get all supported token prices."),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ tokens }) => {
       try {
         const res = await api.get("/api/v1/oracle/prices", { params: tokens ? { tokens } : {} });
@@ -211,6 +219,7 @@ function registerTools(server: McpServer, api: any) {
     "spraay_oracle_gas",
     "Get current gas prices on Base in gwei. Returns base fee, priority fee, and estimated transaction costs. Costs $0.001 USDC.",
     {},
+    { readOnlyHint: true, openWorldHint: true },
     async () => {
       try {
         const res = await api.get("/api/v1/oracle/gas");
@@ -227,6 +236,7 @@ function registerTools(server: McpServer, api: any) {
     {
       base: z.string().optional().describe("Base stablecoin for rate calculation (default: 'USDC'). Options: USDC, USDT, DAI, EURC"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ base: baseCoin }) => {
       try {
         const res = await api.get("/api/v1/oracle/fx", { params: baseCoin ? { base: baseCoin } : {} });
@@ -251,6 +261,7 @@ function registerTools(server: McpServer, api: any) {
       amount: z.string().min(1).describe("Amount in smallest units (e.g. '1000000' for 1 USDC with 6 decimals)"),
       fromAddress: ethAddr.describe("Sender wallet address on source chain"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ fromChain, toChain, token, amount, fromAddress }) => {
       try {
         const res = await api.get("/api/v1/bridge/quote", { params: { fromChain, toChain, token, amount, fromAddress } });
@@ -265,6 +276,7 @@ function registerTools(server: McpServer, api: any) {
     "spraay_bridge_chains",
     "List all chains supported by the Spraay bridge aggregator (LI.FI). Returns chain names, IDs, and supported tokens. Costs $0.001 USDC.",
     {},
+    { readOnlyHint: true, openWorldHint: true },
     async () => {
       try {
         const res = await api.get("/api/v1/bridge/chains");
@@ -291,6 +303,7 @@ function registerTools(server: McpServer, api: any) {
         label: z.string().max(100).optional().describe("Employee label/name for record-keeping"),
       })).min(1).max(200).describe("Array of 1-200 employee payment objects"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ token, sender, employees }) => {
       try {
         const res = await api.post("/api/v1/payroll/execute", { token, sender, employees });
@@ -308,6 +321,7 @@ function registerTools(server: McpServer, api: any) {
       employeeCount: z.number().min(1).max(200).describe("Number of employees to pay (1-200)"),
       token: z.string().optional().describe("Payment token symbol (default: 'USDC')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ employeeCount, token }) => {
       try {
         const res = await api.post("/api/v1/payroll/estimate", { employeeCount, ...(token && { token }) });
@@ -322,6 +336,7 @@ function registerTools(server: McpServer, api: any) {
     "spraay_payroll_tokens",
     "List all stablecoins supported for payroll on Base. Returns symbols, addresses, and decimals. Costs $0.001 USDC.",
     {},
+    { readOnlyHint: true, openWorldHint: true },
     async () => {
       try {
         const res = await api.get("/api/v1/payroll/tokens");
@@ -347,6 +362,7 @@ function registerTools(server: McpServer, api: any) {
       memo: z.string().max(500).optional().describe("Invoice description/memo (e.g. 'Web development - March 2026')"),
       dueDate: z.string().optional().describe("Payment deadline in ISO 8601 format (e.g. '2026-04-15')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ creator, token, amount, recipient, memo, dueDate }) => {
       try {
         const res = await api.post("/api/v1/invoice/create", { creator, token, amount, ...(recipient && { recipient }), ...(memo && { memo }), ...(dueDate && { dueDate }) });
@@ -364,6 +380,7 @@ function registerTools(server: McpServer, api: any) {
       address: ethAddr.describe("Creator or payer address to filter by (e.g. '0xYourAddress')"),
       status: z.enum(["pending", "paid", "expired", "cancelled"]).optional().describe("Filter by invoice status"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ address, status }) => {
       try {
         const res = await api.get("/api/v1/invoice/list", { params: { address, ...(status && { status }) } });
@@ -380,6 +397,7 @@ function registerTools(server: McpServer, api: any) {
     {
       id: z.string().min(1).describe("Invoice ID (e.g. 'INV-A1B2C3D4E5F6')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ id }) => {
       try {
         const res = await api.get(`/api/v1/invoice/${id}`);
@@ -400,6 +418,7 @@ function registerTools(server: McpServer, api: any) {
     {
       address: ethAddr.describe("Wallet address to analyze (e.g. '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ address }) => {
       try {
         const res = await api.get("/api/v1/analytics/wallet", { params: { address } });
@@ -417,6 +436,7 @@ function registerTools(server: McpServer, api: any) {
       address: ethAddr.describe("Wallet address to get history for"),
       limit: z.string().optional().describe("Max transactions to return (default: '10', max: '100')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ address, limit }) => {
       try {
         const res = await api.get("/api/v1/analytics/txhistory", { params: { address, ...(limit && { limit }) } });
@@ -443,6 +463,7 @@ function registerTools(server: McpServer, api: any) {
       conditions: z.array(z.string().min(1).max(500)).max(20).optional().describe("Milestone conditions (e.g. ['Design approved', 'Dev complete'])"),
       expiresIn: z.number().min(1).max(8760).optional().describe("Expiry in hours (1-8760, default: 168 = 7 days)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ depositor, beneficiary, token, amount, arbiter, conditions, expiresIn }) => {
       try {
         const res = await api.post("/api/v1/escrow/create", { depositor, beneficiary, token, amount, ...(arbiter && { arbiter }), ...(conditions && { conditions }), ...(expiresIn && { expiresIn }) });
@@ -460,6 +481,7 @@ function registerTools(server: McpServer, api: any) {
       address: ethAddr.describe("Address to list escrows for (depositor, beneficiary, or arbiter)"),
       status: z.enum(["created", "funded", "released", "cancelled", "expired"]).optional().describe("Filter by escrow status"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ address, status }) => {
       try {
         const res = await api.get("/api/v1/escrow/list", { params: { address, ...(status && { status }) } });
@@ -476,6 +498,7 @@ function registerTools(server: McpServer, api: any) {
     {
       id: z.string().min(1).describe("Escrow ID (e.g. 'ESC-A1B2C3D4E5F6')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ id }) => {
       try {
         const res = await api.get(`/api/v1/escrow/${id}`);
@@ -492,6 +515,7 @@ function registerTools(server: McpServer, api: any) {
     {
       escrowId: z.string().min(1).describe("Escrow ID to fund (e.g. 'ESC-A1B2C3D4E5F6')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ escrowId }) => {
       try {
         const res = await api.post("/api/v1/escrow/fund", { escrowId });
@@ -509,6 +533,7 @@ function registerTools(server: McpServer, api: any) {
       escrowId: z.string().min(1).describe("Escrow ID to release (e.g. 'ESC-A1B2C3D4E5F6')"),
       caller: ethAddr.describe("Caller address — must be depositor or arbiter"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ escrowId, caller }) => {
       try {
         const res = await api.post("/api/v1/escrow/release", { escrowId, caller });
@@ -526,6 +551,7 @@ function registerTools(server: McpServer, api: any) {
       escrowId: z.string().min(1).describe("Escrow ID to cancel (e.g. 'ESC-A1B2C3D4E5F6')"),
       caller: ethAddr.describe("Caller address — must be depositor (or arbiter for funded escrows)"),
     },
+    { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     async ({ escrowId, caller }) => {
       try {
         const res = await api.post("/api/v1/escrow/cancel", { escrowId, caller });
@@ -546,6 +572,7 @@ function registerTools(server: McpServer, api: any) {
     {
       address: ethAddr.describe("Ethereum/Base address to classify (e.g. '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ address }) => {
       try {
         const res = await api.post("/api/v1/inference/classify-address", { address });
@@ -562,6 +589,7 @@ function registerTools(server: McpServer, api: any) {
     {
       hash: txHash.describe("Transaction hash to classify (e.g. '0xabc123...')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ hash }) => {
       try {
         const res = await api.post("/api/v1/inference/classify-tx", { hash });
@@ -578,6 +606,7 @@ function registerTools(server: McpServer, api: any) {
     {
       address: ethAddr.describe("Contract address to analyze on Base (e.g. '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' for USDC)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ address }) => {
       try {
         const res = await api.post("/api/v1/inference/explain-contract", { address });
@@ -595,6 +624,7 @@ function registerTools(server: McpServer, api: any) {
       target: z.string().min(1).describe("Address (0x..., 40 hex chars) or transaction hash (0x..., 64 hex chars) to summarize"),
       context: z.string().optional().describe("Context hint to improve analysis (e.g. 'defi', 'nft', 'governance', 'bridge', 'mev')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ target, context }) => {
       try {
         const res = await api.post("/api/v1/inference/summarize", { target, ...(context && { context }) });
@@ -619,6 +649,7 @@ function registerTools(server: McpServer, api: any) {
       cc: z.string().email().optional().describe("CC email address"),
       replyTo: z.string().email().optional().describe("Reply-to email address"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ to, subject, body, cc, replyTo }) => {
       try {
         const res = await api.post("/api/v1/notify/email", { to, body, ...(subject && { subject }), ...(cc && { cc }), ...(replyTo && { replyTo }) });
@@ -636,6 +667,7 @@ function registerTools(server: McpServer, api: any) {
       to: z.string().regex(/^\+[1-9]\d{1,14}$/, "Must be E.164 format (e.g. +14155551234)").describe("Phone number in E.164 format (e.g. '+14155551234')"),
       body: z.string().min(1).max(1600).describe("SMS message body (max 1600 characters)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ to, body }) => {
       try {
         const res = await api.post("/api/v1/notify/sms", { to, body });
@@ -652,6 +684,7 @@ function registerTools(server: McpServer, api: any) {
     {
       id: z.string().min(1).describe("Notification ID returned from spraay_notify_email or spraay_notify_sms (e.g. 'ntf_abc123')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ id }) => {
       try {
         const res = await api.get("/api/v1/notify/status", { params: { id } });
@@ -673,6 +706,7 @@ function registerTools(server: McpServer, api: any) {
       url: z.string().url("Must be a valid HTTPS URL").describe("Webhook URL to receive POST events (e.g. 'https://yourapp.com/webhook')"),
       events: z.array(z.string().min(1)).min(1).max(20).describe("Events to subscribe to (e.g. ['payment.sent', 'escrow.funded', 'swap.completed'])"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ url, events }) => {
       try {
         const res = await api.post("/api/v1/webhook/register", { url, events });
@@ -689,6 +723,7 @@ function registerTools(server: McpServer, api: any) {
     {
       webhookId: z.string().min(1).describe("Webhook ID to test (e.g. 'whk_abc123')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ webhookId }) => {
       try {
         const res = await api.post("/api/v1/webhook/test", { webhookId });
@@ -705,6 +740,7 @@ function registerTools(server: McpServer, api: any) {
     {
       status: z.enum(["active", "paused", "failed"]).optional().describe("Filter by webhook status"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ status }) => {
       try {
         const res = await api.get("/api/v1/webhook/list", { params: status ? { status } : {} });
@@ -721,6 +757,7 @@ function registerTools(server: McpServer, api: any) {
     {
       webhookId: z.string().min(1).describe("Webhook ID to delete (e.g. 'whk_abc123')"),
     },
+    { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     async ({ webhookId }) => {
       try {
         const res = await api.post("/api/v1/webhook/delete", { webhookId });
@@ -743,6 +780,7 @@ function registerTools(server: McpServer, api: any) {
       content: z.string().min(1).max(10000).describe("Message content to send"),
       contentType: z.string().optional().describe("Content type (default: 'text/plain')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ to, content, contentType }) => {
       try {
         const res = await api.post("/api/v1/xmtp/send", { to, content, ...(contentType && { contentType }) });
@@ -760,6 +798,7 @@ function registerTools(server: McpServer, api: any) {
       address: ethAddr.describe("Ethereum address to check inbox for"),
       limit: z.string().optional().describe("Max messages to return (default: '20', max: '100')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ address, limit }) => {
       try {
         const res = await api.get("/api/v1/xmtp/inbox", { params: { address, ...(limit && { limit }) } });
@@ -782,6 +821,7 @@ function registerTools(server: McpServer, api: any) {
       method: z.string().min(1).describe("JSON-RPC method (e.g. 'eth_getBalance', 'eth_blockNumber', 'eth_call', 'eth_getTransactionReceipt')"),
       params: z.array(z.any()).optional().describe("RPC method parameters as array (e.g. ['0xAddress', 'latest'])"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ chain, method, params }) => {
       try {
         const res = await api.post("/api/v1/rpc/call", { chain, method, ...(params && { params }) });
@@ -796,6 +836,7 @@ function registerTools(server: McpServer, api: any) {
     "spraay_rpc_chains",
     "List all chains supported by the Spraay RPC proxy and their allowed JSON-RPC methods. Costs $0.001 USDC.",
     {},
+    { readOnlyHint: true, openWorldHint: true },
     async () => {
       try {
         const res = await api.get("/api/v1/rpc/chains");
@@ -818,6 +859,7 @@ function registerTools(server: McpServer, api: any) {
       contentType: z.string().optional().describe("MIME type (default: 'application/octet-stream', e.g. 'application/json', 'text/plain')"),
       provider: z.enum(["ipfs", "arweave"]).optional().describe("Storage provider (default: 'ipfs')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ data, contentType, provider }) => {
       try {
         const res = await api.post("/api/v1/storage/pin", { data, ...(contentType && { contentType }), ...(provider && { provider }) });
@@ -834,6 +876,7 @@ function registerTools(server: McpServer, api: any) {
     {
       cid: z.string().min(1).describe("Content identifier (CID) to retrieve (e.g. 'QmXoypizj...' or 'bafybeig...')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ cid }) => {
       try {
         const res = await api.get("/api/v1/storage/get", { params: { cid } });
@@ -850,6 +893,7 @@ function registerTools(server: McpServer, api: any) {
     {
       id: z.string().min(1).describe("Pin request ID (e.g. 'pin_abc123')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ id }) => {
       try {
         const res = await api.get("/api/v1/storage/status", { params: { id } });
@@ -873,6 +917,7 @@ function registerTools(server: McpServer, api: any) {
       payload: z.record(z.string(), z.any()).describe("Payload for the scheduled action (same format as the action's direct API call)"),
       maxRuns: z.number().min(1).max(10000).optional().describe("Max executions before auto-cancel (omit for unlimited)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ action, schedule, payload, maxRuns }) => {
       try {
         const res = await api.post("/api/v1/cron/create", { action, schedule, payload, ...(maxRuns && { maxRuns }) });
@@ -890,6 +935,7 @@ function registerTools(server: McpServer, api: any) {
       status: z.enum(["active", "paused", "cancelled", "completed"]).optional().describe("Filter by job status"),
       action: z.string().optional().describe("Filter by action type (e.g. 'batch.execute')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ status, action }) => {
       try {
         const res = await api.get("/api/v1/cron/list", { params: { ...(status && { status }), ...(action && { action }) } });
@@ -906,6 +952,7 @@ function registerTools(server: McpServer, api: any) {
     {
       jobId: z.string().min(1).describe("Cron job ID to cancel (e.g. 'cron_abc123')"),
     },
+    { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
     async ({ jobId }) => {
       try {
         const res = await api.post("/api/v1/cron/cancel", { jobId });
@@ -931,6 +978,7 @@ function registerTools(server: McpServer, api: any) {
         data: z.record(z.string(), z.any()).optional().describe("Additional structured data as key-value pairs"),
       })).min(1).max(100).describe("Array of 1-100 log entries"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ entries }) => {
       try {
         const res = await api.post("/api/v1/logs/ingest", { entries });
@@ -950,6 +998,7 @@ function registerTools(server: McpServer, api: any) {
       since: z.string().optional().describe("Start time in ISO 8601 format (e.g. '2026-03-01T00:00:00Z')"),
       limit: z.string().optional().describe("Max results to return (default: '50', max: '500')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ service, level, since, limit }) => {
       try {
         const res = await api.get("/api/v1/logs/query", { params: { ...(service && { service }), ...(level && { level }), ...(since && { since }), ...(limit && { limit }) } });
@@ -972,6 +1021,7 @@ function registerTools(server: McpServer, api: any) {
       type: z.enum(["individual", "business"]).optional().describe("Verification type (default: 'individual')"),
       level: z.enum(["basic", "enhanced", "full"]).optional().describe("Verification level (default: 'basic')"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ address, type, level }) => {
       try {
         const res = await api.post("/api/v1/kyc/verify", { address, ...(type && { type }), ...(level && { level }) });
@@ -989,6 +1039,7 @@ function registerTools(server: McpServer, api: any) {
       id: z.string().optional().describe("KYC record ID (e.g. 'kyc_abc123')"),
       address: ethAddr.optional().describe("Ethereum address for lookup (alternative to ID)"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ id, address }) => {
       try {
         const res = await api.get("/api/v1/kyc/status", { params: { ...(id && { id }), ...(address && { address }) } });
@@ -1011,6 +1062,7 @@ function registerTools(server: McpServer, api: any) {
       permissions: z.array(z.string()).optional().describe("Scoped permissions array (e.g. ['batch:execute', 'swap:execute']). Omit or pass ['*'] for all permissions."),
       ttlSeconds: z.number().min(60).max(86400).optional().describe("Session TTL in seconds (60-86400, default: 3600 = 1 hour)"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ address, permissions, ttlSeconds }) => {
       try {
         const res = await api.post("/api/v1/auth/session", { address, ...(permissions && { permissions }), ...(ttlSeconds && { ttlSeconds }) });
@@ -1027,6 +1079,7 @@ function registerTools(server: McpServer, api: any) {
     {
       token: z.string().min(1).describe("Session token to verify (e.g. 'spr_abc123...')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ token }) => {
       try {
         const res = await api.get("/api/v1/auth/verify", { params: { token } });
@@ -1051,6 +1104,7 @@ function registerTools(server: McpServer, api: any) {
       details: z.record(z.string(), z.any()).optional().describe("Additional details as key-value pairs"),
       txHash: txHash.optional().describe("Related on-chain transaction hash"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ action, actor, resource, details, txHash }) => {
       try {
         const res = await api.post("/api/v1/audit/log", { action, actor, resource, ...(details && { details }), ...(txHash && { txHash }) });
@@ -1072,6 +1126,7 @@ function registerTools(server: McpServer, api: any) {
       until: z.string().optional().describe("End time in ISO 8601"),
       limit: z.string().optional().describe("Max results (default: '50', max: '500')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ actor, action, resource, since, until, limit }) => {
       try {
         const res = await api.get("/api/v1/audit/query", { params: { ...(actor && { actor }), ...(action && { action }), ...(resource && { resource }), ...(since && { since }), ...(until && { until }), ...(limit && { limit }) } });
@@ -1101,6 +1156,7 @@ function registerTools(server: McpServer, api: any) {
         timestamp: z.string().optional().describe("Transaction timestamp in ISO 8601"),
       })).min(1).max(500).describe("Array of 1-500 transaction objects for tax calculation"),
     },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async ({ transactions }) => {
       try {
         const res = await api.post("/api/v1/tax/calculate", { transactions });
@@ -1117,6 +1173,7 @@ function registerTools(server: McpServer, api: any) {
     {
       reportId: z.string().optional().describe("Tax report ID from spraay_tax_calculate (e.g. 'tax_abc123'). Omit to list all reports."),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ reportId }) => {
       try {
         const res = await api.get("/api/v1/tax/report", { params: reportId ? { reportId } : {} });
@@ -1137,6 +1194,7 @@ function registerTools(server: McpServer, api: any) {
     {
       token: z.string().optional().describe("Specific token symbol (e.g. 'WETH', 'cbBTC'). Omit to get all supported token prices."),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ token }) => {
       try {
         const res = await api.get("/api/v1/prices", { params: token ? { token } : {} });
@@ -1155,6 +1213,7 @@ function registerTools(server: McpServer, api: any) {
       tokens: z.string().optional().describe("Comma-separated custom ERC-20 contract addresses to include"),
       showAll: z.enum(["true", "false"]).optional().describe("Set to 'true' to include zero balances"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ address, tokens, showAll }) => {
       try {
         const res = await api.get("/api/v1/balances", { params: { address, ...(tokens && { tokens }), ...(showAll && { showAll }) } });
@@ -1171,6 +1230,7 @@ function registerTools(server: McpServer, api: any) {
     {
       name: z.string().min(1).describe("ENS name (e.g. 'vitalik.eth'), Basename (e.g. 'satoshi.base.eth'), or address for reverse lookup (e.g. '0xd8dA...')"),
     },
+    { readOnlyHint: true, openWorldHint: true },
     async ({ name }) => {
       try {
         const res = await api.get("/api/v1/resolve", { params: { name } });
@@ -1253,7 +1313,6 @@ function registerTools(server: McpServer, api: any) {
       }],
     })
   );
-
 // ============================================
   // PROMPTS — Guided workflow templates
   // ============================================
@@ -1397,7 +1456,7 @@ async function main() {
 // Config schema for Smithery UI — tells users what env vars are needed
 export const configSchema = z.object({
   EVM_PRIVATE_KEY: z.string().describe("Private key of a wallet with USDC on Base mainnet. Used for automatic x402 micropayments."),
-  SPRAAY_GATEWAY_URL: z.string().default("https://gateway.spraay.app").describe("Spraay x402 Gateway URL"),
+  SPRAAY_GATEWAY_URL: z.string().optional().default("https://gateway.spraay.app").describe("Spraay x402 Gateway URL (optional, defaults to https://gateway.spraay.app)"),
 });
 
 // Default export: Smithery calls this to create the server
