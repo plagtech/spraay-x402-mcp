@@ -1185,6 +1185,130 @@ function registerTools(server: McpServer, api: any) {
   );
 
   // ============================================
+  // GPU/Compute (3 tools)
+  // ============================================
+
+  server.tool(
+    "spraay_gpu_run",
+    "Run AI model inference on GPU via Replicate. Supports image generation (flux-pro, sdxl, ideogram), video generation (wan-video, minimax-video), LLMs (llama-70b, llama-8b, mixtral), audio (whisper transcription, musicgen), and utilities (esrgan upscaling, rembg background removal). Use shortcuts like 'flux-pro' or full model IDs like 'owner/model'. Returns output directly for fast models, or a poll URL for longer jobs. Costs $0.05 USDC.",
+    {
+      model: z.string().min(1).describe("Model shortcut (flux-pro, sdxl, llama-70b, whisper, esrgan, etc.) or full Replicate model ID (owner/model-name). Use spraay_gpu_models to list all shortcuts."),
+      input: z.record(z.string(), z.any()).describe("Model-specific input parameters. Image models: { prompt: '...' }. LLMs: { prompt: '...' }. Whisper: { audio: 'https://...' }. ESRGAN: { image: 'https://...' }."),
+      version: z.string().optional().describe("Specific model version hash (optional — not needed for official models)"),
+      webhook: z.string().optional().describe("Webhook URL for async result delivery (optional)"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ model, input, version, webhook }) => {
+      try {
+        const res = await api.post("/api/v1/gpu/run", { model, input, ...(version && { version }), ...(webhook && { webhook }) });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `GPU run error: ${error.message}. Check model shortcuts with spraay_gpu_models.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_gpu_status",
+    "Check the status of a GPU prediction by ID. Use this to poll for results on longer-running jobs like video generation or large model inference. Returns output when complete. Costs $0.002 USDC.",
+    {
+      id: z.string().min(1).describe("Prediction ID returned from spraay_gpu_run"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ id }) => {
+      try {
+        const res = await api.get(`/api/v1/gpu/status/${id}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `GPU status error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_gpu_models",
+    "List all available GPU model shortcuts grouped by category (image, video, LLM, audio, utility). Shows shortcut names, full Replicate model IDs, and descriptions. You can also use any Replicate model by its full ID. FREE — no USDC cost.",
+    {},
+    { readOnlyHint: true, openWorldHint: true },
+    async () => {
+      try {
+        const res = await api.get("/api/v1/gpu/models");
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `GPU models error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  // ============================================
+  // Search/RAG (3 tools)
+  // ============================================
+
+  server.tool(
+    "spraay_search_web",
+    "Search the web and get clean, LLM-ready results via Tavily. Returns extracted content (not just links), plus an AI-generated answer. Supports basic and advanced search depth, domain filtering, and topic focus (general, news, finance). Costs $0.01 USDC.",
+    {
+      query: z.string().min(1).max(2000).describe("Search query (e.g. 'latest Base ecosystem developments', 'x402 protocol explained')"),
+      search_depth: z.enum(["basic", "advanced"]).optional().describe("Search depth: 'basic' (fast, default) or 'advanced' (deeper extraction, better results)"),
+      max_results: z.number().min(1).max(20).optional().describe("Number of results to return (default: 5, max: 20)"),
+      topic: z.enum(["general", "news", "finance"]).optional().describe("Topic focus: 'general' (default), 'news' (recent events), 'finance' (markets/crypto)"),
+      include_domains: z.array(z.string()).optional().describe("Only include results from these domains (e.g. ['docs.base.org', 'ethereum.org'])"),
+      exclude_domains: z.array(z.string()).optional().describe("Exclude results from these domains"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ query, search_depth, max_results, topic, include_domains, exclude_domains }) => {
+      try {
+        const res = await api.post("/api/v1/search/web", {
+          query,
+          ...(search_depth && { search_depth }),
+          ...(max_results && { max_results }),
+          ...(topic && { topic }),
+          ...(include_domains && { include_domains }),
+          ...(exclude_domains && { exclude_domains }),
+        });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Search error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_search_extract",
+    "Extract clean, structured content from specific URLs — perfect for RAG pipelines. Returns the full text content of each page, ready for LLM consumption. Up to 5 URLs per request. Costs $0.015 USDC.",
+    {
+      urls: z.array(z.string().url()).min(1).max(5).describe("Array of 1-5 URLs to extract content from (e.g. ['https://docs.base.org/overview'])"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ urls }) => {
+      try {
+        const res = await api.post("/api/v1/search/extract", { urls });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Extract error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_search_qna",
+    "Ask a question and get a direct, synthesized answer with cited sources. Searches the web, extracts relevant content, and generates a comprehensive answer. Great for research and fact-checking. Costs $0.02 USDC.",
+    {
+      query: z.string().min(1).max(2000).describe("Natural language question (e.g. 'What is x402 protocol and how does it work?')"),
+      topic: z.enum(["general", "news", "finance"]).optional().describe("Topic focus: 'general' (default), 'news', 'finance'"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ query, topic }) => {
+      try {
+        const res = await api.post("/api/v1/search/qna", { query, ...(topic && { topic }) });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Q&A error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  // ============================================
   // Data (3 tools)
   // ============================================
 
@@ -1254,9 +1378,9 @@ function registerTools(server: McpServer, api: any) {
         uri: "spraay://gateway/info",
         mimeType: "application/json",
         text: JSON.stringify({
-          name: "Spraay x402 Gateway", version: "3.2.0", gateway: "https://gateway.spraay.app",
-          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 57, activeTools: 56,
-          categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data"],
+          name: "Spraay x402 Gateway", version: "3.3.0", gateway: "https://gateway.spraay.app",
+          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 63, activeTools: 62,
+          categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data", "GPU/Compute", "Search/RAG"],
           persistence: "Supabase Postgres", protocol: "x402", facilitator: "Coinbase CDP",
         }, null, 2),
       }],
@@ -1382,7 +1506,7 @@ function registerTools(server: McpServer, api: any) {
 export function createSandboxServer() {
   const server = new McpServer({
     name: "Spraay x402 Gateway",
-    version: "3.2.0",
+    version: "3.3.0",
   });
   const mockApi = axios.create({ baseURL: gatewayURL });
   registerTools(server, mockApi);
@@ -1397,11 +1521,11 @@ async function startHttpServer(api: any) {
   app.get("/", (_req: any, res: any) => {
     res.json({
       name: "Spraay x402 MCP Server",
-      version: "3.2.0",
-      description: "57 MCP tools (56 active) for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI agents pay USDC per request via x402 protocol.",
+      version: "3.3.0",
+      description: "63 MCP tools (62 active) for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
       mcp: "/mcp",
-      tools: 57,
-      activeTools: 56,
+      tools: 63,
+      activeTools: 62,
       resources: 3,
       prompts: 4,
       gateway: gatewayURL,
@@ -1411,7 +1535,7 @@ async function startHttpServer(api: any) {
   app.all("/mcp", async (req: any, res: any) => {
     const server = new McpServer({
       name: "Spraay x402 Gateway",
-      version: "3.2.0",
+      version: "3.3.0",
     });
     registerTools(server, api);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined as any });
@@ -1424,7 +1548,7 @@ async function startHttpServer(api: any) {
     console.log(`\n💧 Spraay MCP Server (HTTP) v3.2.0 running on port ${PORT}`);
     console.log(`📡 MCP endpoint: http://localhost:${PORT}/mcp`);
     console.log(`🔗 Gateway: ${gatewayURL}`);
-    console.log(`🔧 57 tools (56 active) + 3 resources + 4 prompts\n`);
+    console.log(`🔧 63 tools (62 active) + 3 resources + 4 prompts\n`);
   });
 }
 
@@ -1432,7 +1556,7 @@ async function startHttpServer(api: any) {
 async function startStdioServer(api: any) {
   const server = new McpServer({
     name: "Spraay x402 Gateway",
-    version: "3.2.0",
+    version: "3.3.0",
   });
   registerTools(server, api);
   const transport = new StdioServerTransport();
@@ -1468,7 +1592,7 @@ export default function createServer({ config }: { config?: z.infer<typeof confi
 
   const server = new McpServer({
     name: "Spraay",
-    version: "3.2.0",
+    version: "3.3.0",
   });
 
   // If we have a real key, create a payment-enabled client
