@@ -1,11 +1,13 @@
 # Spraay x402 MCP Server
 
 [![smithery badge](https://smithery.ai/badge/Plagtech/Spraay-x402-mcp)](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
+[![Version](https://img.shields.io/badge/version-3.2.0-blue)](https://mcp.spraay.app)
+[![Tools](https://img.shields.io/badge/tools-57%20(56%20active)-blueviolet)](https://mcp.spraay.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Full-stack DeFi infrastructure for AI agents — 33 pay-per-use tools on Base.**
+**Full-stack DeFi infrastructure for AI agents — 57 pay-per-use tools (56 active) on Base with persistent Supabase storage.**
 
-Connect Claude, Cursor, or any MCP-compatible AI to onchain payments, token swaps, bridge, payroll, invoicing, escrow, oracle data, analytics, AI inference, and 200+ AI models.
+Connect Claude, Cursor, or any MCP-compatible AI to onchain payments, token swaps, bridge, payroll, invoicing, escrow, oracle data, analytics, AI inference, email, XMTP messaging, webhooks, cron scheduling, IPFS storage, multi-chain RPC, KYC, auth, audit trail, tax & 200+ AI models.
 
 AI agents pay USDC per request via [x402 protocol](https://x402.org). No API keys. No accounts. Just plug in and go.
 
@@ -67,7 +69,7 @@ npm start
 
 ---
 
-## 33 Tools Available
+## 57 Tools — 15 Categories
 
 ### AI ($0.001–$0.005)
 | Tool | Description | Cost |
@@ -98,7 +100,7 @@ npm start
 ### Bridge ($0.001–$0.005)
 | Tool | Description | Cost |
 |------|-------------|------|
-| `spraay_bridge_quote` | Cross-chain bridge quote (8 chains) | $0.005 |
+| `spraay_bridge_quote` | Cross-chain bridge quote (8+ chains) | $0.005 |
 | `spraay_bridge_chains` | Supported bridge chains | $0.001 |
 
 ### Payroll ($0.001–$0.02)
@@ -108,7 +110,7 @@ npm start
 | `spraay_payroll_estimate` | Estimate payroll gas and fees | $0.002 |
 | `spraay_payroll_tokens` | List payroll stablecoins | $0.001 |
 
-### Invoice ($0.001–$0.005)
+### Invoice ($0.001–$0.005) — persistent
 | Tool | Description | Cost |
 |------|-------------|------|
 | `spraay_invoice_create` | Create invoice with payment tx | $0.005 |
@@ -121,7 +123,7 @@ npm start
 | `spraay_analytics_wallet` | Wallet profile: balances, age, classification | $0.005 |
 | `spraay_analytics_txhistory` | Transaction history with decoded types | $0.003 |
 
-### Escrow ($0.001–$0.008)
+### Escrow ($0.001–$0.008) — persistent
 | Tool | Description | Cost |
 |------|-------------|------|
 | `spraay_escrow_create` | Create conditional escrow with milestones | $0.008 |
@@ -134,10 +136,53 @@ npm start
 ### AI Inference ($0.008–$0.01)
 | Tool | Description | Cost |
 |------|-------------|------|
-| `spraay_inference_classify_address` | AI wallet classification with risk scoring | $0.008 |
-| `spraay_inference_classify_tx` | AI transaction classification and risk analysis | $0.008 |
-| `spraay_inference_explain_contract` | AI smart contract analysis and explanation | $0.01 |
-| `spraay_inference_summarize` | AI intelligence briefing for any address or tx | $0.008 |
+| `spraay_classify_address` | AI wallet classification with risk scoring | $0.008 |
+| `spraay_classify_tx` | AI transaction classification and risk analysis | $0.008 |
+| `spraay_explain_contract` | AI smart contract analysis and explanation | $0.01 |
+| `spraay_summarize` | AI intelligence briefing for any address or tx | $0.008 |
+
+### Communication ($0.001–$0.005)
+| Tool | Description | Cost | Status |
+|------|-------------|------|--------|
+| `spraay_notify_email` | Send email notifications (AgentMail) | $0.003 | ✅ Live |
+| `spraay_notify_sms` | Send SMS notifications | $0.005 | ⏳ Simulated |
+| `spraay_notify_status` | Check notification delivery status | $0.001 | ✅ Live |
+| `spraay_webhook_register` | Register webhook endpoint | $0.003 | ✅ Persistent |
+| `spraay_webhook_test` | Test webhook delivery | $0.002 | ✅ Persistent |
+| `spraay_webhook_list` | List registered webhooks | $0.001 | ✅ Persistent |
+| `spraay_webhook_delete` | Delete webhook | $0.001 | ✅ Persistent |
+| `spraay_xmtp_send` | Send encrypted XMTP message | $0.003 | ✅ Live |
+| `spraay_xmtp_inbox` | Read XMTP inbox | $0.002 | ✅ Live |
+
+### Infrastructure ($0.001–$0.005)
+| Tool | Description | Cost | Status |
+|------|-------------|------|--------|
+| `spraay_rpc_call` | Multi-chain JSON-RPC via Alchemy | $0.001 | ✅ Live |
+| `spraay_rpc_chains` | List supported RPC chains | $0.001 | ✅ Live |
+| `spraay_storage_pin` | Pin to IPFS via Pinata | $0.005 | ✅ Live |
+| `spraay_storage_get` | Retrieve pinned content | $0.002 | ✅ Live |
+| `spraay_storage_status` | Check pin status | $0.001 | ✅ Live |
+| `spraay_cron_create` | Create scheduled job | $0.005 | ✅ Persistent |
+| `spraay_cron_list` | List scheduled jobs | $0.001 | ✅ Persistent |
+| `spraay_cron_cancel` | Cancel scheduled job | $0.001 | ✅ Persistent |
+| `spraay_logs_ingest` | Ingest structured logs | $0.001 | ✅ Persistent |
+| `spraay_logs_query` | Query logs | $0.003 | ✅ Persistent |
+
+### Identity & Access ($0.001–$0.05) — persistent
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_kyc_verify` | Initiate KYC/KYB verification | $0.05 |
+| `spraay_kyc_status` | Check KYC status | $0.005 |
+| `spraay_auth_session` | Create scoped auth session | $0.005 |
+| `spraay_auth_verify` | Verify session token | $0.001 |
+
+### Compliance ($0.001–$0.02) — persistent
+| Tool | Description | Cost |
+|------|-------------|------|
+| `spraay_audit_log` | Record audit trail entry | $0.001 |
+| `spraay_audit_query` | Query audit trail | $0.005 |
+| `spraay_tax_calculate` | Calculate crypto tax (FIFO) | $0.01 |
+| `spraay_tax_report` | Retrieve tax report | $0.02 |
 
 ### Data ($0.001–$0.002)
 | Tool | Description | Cost |
@@ -157,7 +202,7 @@ npm start
 5. Gateway validates payment and returns data
 6. Agent gets the response
 
-All payments are micro-transactions ($0.001–$0.02) in USDC on Base mainnet.
+All payments are micro-transactions ($0.001–$0.05) in USDC on Base mainnet.
 
 ---
 
