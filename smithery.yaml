@@ -1,6 +1,6 @@
 # Smithery configuration — https://smithery.ai/docs/build/project-config/smithery.yaml
 name: "Spraay"
-description: "Full-stack DeFi infrastructure for AI agents on Base. 57 tools for payments, swaps, bridge, payroll, invoicing, escrow, oracle, analytics, AI inference, communication, scheduling, storage, KYC, auth, audit trail & tax. Agents pay USDC per request via x402 protocol. No API keys needed."
+description: "Full-stack DeFi infrastructure for AI agents on Base. 33 tools for payments, swaps, bridge, payroll, invoicing, escrow, oracle, analytics, AI inference & data. Agents pay USDC per request via x402 protocol. No API keys needed."
 icon: "https://raw.githubusercontent.com/plagtech/spraay-x402-mcp/main/spraay-logo-1000x1000.png"
 
 startCommand:
@@ -8,21 +8,26 @@ startCommand:
   configSchema:
     type: object
     required:
-      - EVM_PRIVATE_KEY
+      - evmPrivateKey
     properties:
-      EVM_PRIVATE_KEY:
+      evmPrivateKey:
         type: string
         title: "EVM Private Key"
-        description: "Private key of a wallet with USDC on Base mainnet. Used for automatic x402 micropayments."
-      SPRAAY_GATEWAY_URL:
+        description: "Private key of a wallet with USDC on Base mainnet. Used for automatic x402 micropayments ($0.001-$0.02 per call)."
+      gatewayUrl:
         type: string
-        default: "https://gateway.spraay.app"
         title: "Gateway URL"
-        description: "Spraay x402 Gateway URL (default: https://gateway.spraay.app)"
-  commandFunction:
-    command: node
-    args:
-      - dist/index.js
-    env:
-      EVM_PRIVATE_KEY: "${EVM_PRIVATE_KEY}"
-      SPRAAY_GATEWAY_URL: "${SPRAAY_GATEWAY_URL}"
+        description: "Spraay x402 Gateway URL. Override only for custom deployments."
+        default: "https://gateway.spraay.app"
+  commandFunction: |-
+    (config) => ({
+      command: "node",
+      args: ["dist/index.js"],
+      env: {
+        EVM_PRIVATE_KEY: config.evmPrivateKey,
+        SPRAAY_GATEWAY_URL: config.gatewayUrl || "https://gateway.spraay.app"
+      }
+    })
+  exampleConfig:
+    evmPrivateKey: "0xYOUR_PRIVATE_KEY_WITH_USDC_ON_BASE"
+    gatewayUrl: "https://gateway.spraay.app"
