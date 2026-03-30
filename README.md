@@ -69,6 +69,10 @@ npm start
 
 ---
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/plagtech-spraay-x402-mcp).
+
 ## 57 Tools — 15 Categories
 
 ### AI ($0.001–$0.005)
