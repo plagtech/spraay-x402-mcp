@@ -1,28 +1,26 @@
 {
-  "name": "spraay-x402-mcp",
-  "version": "3.1.0",
-  "module": "src/index.ts",
-  "description": "MCP server for Spraay x402 Gateway — AI models, batch payments, DeFi data & onchain intelligence on Base. Pay USDC per request.",
+  "name": "@plagtech/spraay-x402-mcp",
+  "version": "4.0.0",
+  "description": "Auto-syncing MCP server for the Spraay x402 Gateway. Fetches endpoints at startup — no manual tool-list maintenance.",
+  "type": "module",
   "main": "dist/index.js",
-  "bin": {
-    "spraay-mcp": "dist/index.js"
-  },
   "scripts": {
-    "build": "tsc",
+    "sync": "node scripts/sync-tools.mjs",
+    "build": "node scripts/sync-tools.mjs && tsc",
+    "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "start:http": "MCP_TRANSPORT=http node dist/index.js"
   },
   "keywords": [
     "mcp",
     "x402",
     "spraay",
-    "base",
+    "ai-agents",
     "defi",
-    "ai",
-    "batch-payments",
+    "base",
     "usdc",
-    "onchain",
-    "model-context-protocol"
+    "batch-payments",
+    "micropayments"
   ],
   "author": "plagtech",
   "license": "MIT",
@@ -31,23 +29,22 @@
     "url": "https://github.com/plagtech/spraay-x402-mcp"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "@x402/axios": "^2.4.0",
-    "@x402/evm": "^2.4.0",
-    "axios": "^1.13.5",
-    "dotenv": "^16.4.5",
-    "esbuild": "^0.27.0",
-    "express": "^5.2.1",
-    "viem": "^2.46.2"
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@x402/axios": "^2.6.0",
+    "@x402/evm": "^2.5.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "viem": "^2.21.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@smithery/cli": "^4.5.0",
-    "@types/express": "^5.0.6",
-    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "@types/node": "^22.0.0",
+    "@types/express": "^5.0.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.0.0"
   }
 }

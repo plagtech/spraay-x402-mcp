@@ -12,6 +12,7 @@ import { base } from "viem/chains";
 import { config } from "dotenv";
 import { z } from "zod";
 import express from "express";
+import { registerAutoTools, autoToolCount } from "./auto-tools.js";
 
 config();
 
@@ -1364,6 +1365,10 @@ function registerTools(server: McpServer, api: any) {
       }
     }
   );
+  // ============================================
+  // AUTO-GENERATED tools from gateway sync
+  // ============================================
+  registerAutoTools(server, api);
 
   // ============================================
   // RESOURCES — Static data for agent context
@@ -1378,7 +1383,7 @@ function registerTools(server: McpServer, api: any) {
         uri: "spraay://gateway/info",
         mimeType: "application/json",
         text: JSON.stringify({
-          name: "Spraay x402 Gateway", version: "3.3.0", gateway: "https://gateway.spraay.app",
+          name: "Spraay x402 Gateway", version: "4.0.0", gateway: "https://gateway.spraay.app",
           network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 63, activeTools: 62,
           categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data", "GPU/Compute", "Search/RAG"],
           persistence: "Supabase Postgres", protocol: "x402", facilitator: "Coinbase CDP",
@@ -1506,7 +1511,7 @@ function registerTools(server: McpServer, api: any) {
 export function createSandboxServer() {
   const server = new McpServer({
     name: "Spraay x402 Gateway",
-    version: "3.3.0",
+    version: "4.0.0",
   });
   const mockApi = axios.create({ baseURL: gatewayURL });
   registerTools(server, mockApi);
@@ -1521,7 +1526,7 @@ async function startHttpServer(api: any) {
   app.get("/", (_req: any, res: any) => {
     res.json({
       name: "Spraay x402 MCP Server",
-      version: "3.3.0",
+      version: "4.0.0",
       description: "63 MCP tools (62 active) for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
       mcp: "/mcp",
       tools: 63,
@@ -1535,7 +1540,7 @@ async function startHttpServer(api: any) {
   app.all("/mcp", async (req: any, res: any) => {
     const server = new McpServer({
       name: "Spraay x402 Gateway",
-      version: "3.3.0",
+      version: "4.0.0",
     });
     registerTools(server, api);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined as any });
@@ -1556,7 +1561,7 @@ async function startHttpServer(api: any) {
 async function startStdioServer(api: any) {
   const server = new McpServer({
     name: "Spraay x402 Gateway",
-    version: "3.3.0",
+    version: "4.0.0",
   });
   registerTools(server, api);
   const transport = new StdioServerTransport();
@@ -1592,7 +1597,7 @@ export default function createServer({ config }: { config?: z.infer<typeof confi
 
   const server = new McpServer({
     name: "Spraay",
-    version: "3.3.0",
+    version: "4.0.0",
   });
 
   // If we have a real key, create a payment-enabled client
