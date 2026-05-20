@@ -1505,6 +1505,209 @@ function registerTools(server: McpServer, api: any) {
       }],
     })
   );
+
+  // ============================================
+  // Compute Services (10 tools)
+  // ============================================
+
+  server.tool(
+    "spraay_compute_text_inference",
+    "Run LLM text inference via Spraay Compute. 11 models across Chutes, Replicate, OpenRouter (DeepSeek, Llama, Qwen, Gemma). Costs $0.003-$0.10 USDC depending on model.",
+    {
+      messages: z.array(z.object({
+        role: z.enum(["system", "user", "assistant"]).describe("Message role"),
+        content: z.string().describe("Message content"),
+      })).min(1).describe("Chat messages array"),
+      model: z.string().optional().default("auto").describe("Model ID (e.g. 'deepseek-ai/DeepSeek-V3-0324', 'auto' for cheapest). Use spraay_compute_models to list all."),
+      max_tokens: z.number().optional().default(1000).describe("Maximum tokens to generate"),
+      temperature: z.number().optional().describe("Sampling temperature (0-2)"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ messages, model, max_tokens, temperature }) => {
+      try {
+        const body: any = { messages, model, max_tokens };
+        if (temperature !== undefined) body.temperature = temperature;
+        const res = await api.post("/api/v1/compute/text-inference", body);
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_text_inference error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_image_generation",
+    "Generate images via Spraay Compute. FLUX Schnell, FLUX Dev, SDXL via Replicate. Text to image. Costs $0.02-$0.08 USDC.",
+    {
+      prompt: z.string().min(1).max(4000).describe("Text prompt describing the image to generate"),
+      model: z.string().optional().default("auto").describe("Model: 'auto', 'flux-schnell', 'flux-dev', 'sdxl'. Auto picks fastest."),
+      width: z.number().optional().default(1024).describe("Image width in pixels (default 1024)"),
+      height: z.number().optional().default(1024).describe("Image height in pixels (default 1024)"),
+      num_outputs: z.number().optional().default(1).describe("Number of images to generate (1-4)"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ prompt, model, width, height, num_outputs }) => {
+      try {
+        const res = await api.post("/api/v1/compute/image-generation", { prompt, model, width, height, num_outputs });
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_image_generation error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_video_generation",
+    "Generate video from text via Spraay Compute. MiniMax Video 01, Wan 2.1 via Replicate. Async — poll spraay_compute_status for results. Costs $0.40-$0.50 USDC.",
+    {
+      prompt: z.string().min(1).max(2000).describe("Text prompt describing the video to generate"),
+      model: z.string().optional().default("auto").describe("Model: 'auto', 'minimax-video-01', 'wan-2.1'"),
+      duration_seconds: z.number().optional().default(4).describe("Video duration in seconds (default 4)"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ prompt, model, duration_seconds }) => {
+      try {
+        const res = await api.post("/api/v1/compute/video-generation", { prompt, model, duration_seconds });
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_video_generation error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_tts",
+    "Text-to-speech via Spraay Compute. Convert text to natural-sounding audio. Replicate TTS models. Costs $0.03-$0.05 USDC.",
+    {
+      text: z.string().min(1).max(5000).describe("Text to convert to speech"),
+      model: z.string().optional().default("auto").describe("TTS model (default 'auto')"),
+      language: z.string().optional().default("en").describe("Language code (default 'en')"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ text, model, language }) => {
+      try {
+        const res = await api.post("/api/v1/compute/text-to-speech", { text, model, language });
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_tts error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_stt",
+    "Speech-to-text via Spraay Compute. Transcribe audio from a URL using Whisper. Costs $0.02 USDC.",
+    {
+      audio_url: z.string().url().describe("URL of the audio file to transcribe (MP3, WAV, M4A, etc.)"),
+      model: z.string().optional().default("auto").describe("STT model (default 'auto' = Whisper)"),
+      language: z.string().optional().describe("Optional language hint (e.g. 'en', 'es', 'fr')"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ audio_url, model, language }) => {
+      try {
+        const body: any = { audio_url, model };
+        if (language) body.language = language;
+        const res = await api.post("/api/v1/compute/speech-to-text", body);
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_stt error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_embeddings",
+    "Generate text embeddings via Spraay Compute. For RAG, semantic search, clustering. Costs $0.005 USDC.",
+    {
+      input: z.union([z.string(), z.array(z.string())]).describe("Text string or array of strings to embed"),
+      model: z.string().optional().default("auto").describe("Embedding model (default 'auto')"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ input, model }) => {
+      try {
+        const res = await api.post("/api/v1/compute/embeddings", { input, model });
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_embeddings error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_batch",
+    "Batch compute — submit up to 50 jobs in a single x402 payment with 10% discount. Mix any types: text-inference, image-generation, tts, stt, embeddings, video-generation. Costs $0.05+ USDC.",
+    {
+      jobs: z.array(z.object({
+        type: z.enum(["text-inference", "image-generation", "video-generation", "text-to-speech", "speech-to-text", "embeddings"]).describe("Compute job type"),
+        messages: z.array(z.object({ role: z.string(), content: z.string() })).optional().describe("For text-inference: chat messages"),
+        prompt: z.string().optional().describe("For image/video/tts: text prompt"),
+        input: z.string().optional().describe("For embeddings: text to embed"),
+        audio_url: z.string().optional().describe("For stt: audio URL"),
+        model: z.string().optional().describe("Model override"),
+      })).min(1).max(50).describe("Array of compute jobs (max 50)"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ jobs }) => {
+      try {
+        const res = await api.post("/api/v1/compute/batch", { jobs });
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_batch error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_status",
+    "Poll async compute job status. Use for video generation and batch jobs that return 'processing'. Costs $0.001 USDC.",
+    {
+      jobId: z.string().describe("Job ID or prediction ID returned from a compute request"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ jobId }) => {
+      try {
+        const res = await api.get(`/api/v1/compute/status/${jobId}`);
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_status error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_models",
+    "List all available compute models with pricing and capabilities. Grouped by type (text, image, video, tts, stt, embeddings). FREE — no x402 payment required.",
+    {},
+    { readOnlyHint: true, openWorldHint: true },
+    async () => {
+      try {
+        const res = await api.get("/api/v1/compute/models");
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_models error: ${error.message}` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_compute_estimate",
+    "Estimate compute cost before committing. Returns price breakdown per job. FREE — no x402 payment required.",
+    {
+      jobs: z.array(z.object({
+        type: z.enum(["text-inference", "image-generation", "video-generation", "text-to-speech", "speech-to-text", "embeddings"]).describe("Job type"),
+        model: z.string().optional().describe("Model override"),
+      })).min(1).describe("Jobs to estimate pricing for"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ jobs }) => {
+      try {
+        const res = await api.post("/api/v1/compute/estimate", { jobs });
+        return { content: [{ type: "text" as const, text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text" as const, text: `spraay_compute_estimate error: ${error.message}` }] };
+      }
+    }
+  );
 }
 
 // Sandbox server for Smithery scanning (no real credentials needed)
