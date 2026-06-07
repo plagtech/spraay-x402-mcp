@@ -24,6 +24,21 @@ async function main() {
   const info = await res.json();
   console.log(`✅ Gateway v${info.version} — ${info.totalEndpoints} endpoints`);
 
+  // 1b. Fetch the OpenAPI doc for typed per-endpoint input schemas (best-effort).
+  //     If this fails or an endpoint isn't documented, we fall back to generic params/body.
+  let openapiFields = new Map(); // "METHOD /path" -> { query:[...], body:[...] }
+  try {
+    const oaRes = await fetch(`${GATEWAY_URL}/openapi.json`);
+    if (oaRes.ok) {
+      openapiFields = buildOpenApiFieldMap(await oaRes.json());
+      console.log(`🧩 OpenAPI: typed input schemas for ${openapiFields.size} operations`);
+    } else {
+      console.log("⚠️  OpenAPI fetch returned non-OK; using generic params/body schemas.");
+    }
+  } catch {
+    console.log("⚠️  OpenAPI fetch failed; using generic params/body schemas.");
+  }
+
   // 2. Collect all endpoint paths from gateway
   const SKIP = new Set(["/", "/health", "/stats", "/.well-known/x402.json"]);
   const allEndpoints = [];
@@ -114,50 +129,79 @@ async function main() {
       ? "{ readOnlyHint: true, openWorldHint: true }"
       : "{ readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }";
 
-    // Capture ANY path parameter (e.g. :id, :jobId), not just :id, so the URL is
-    // actually substituted instead of being sent literally. The arg is snake_cased
-    // to match the served tool name (e.g. :jobId -> job_id).
+    // Capture ANY path parameter (e.g. :id, :jobId). Its value is interpolated into the
+    // URL; the MCP arg uses the raw gateway param name so the handler can forward cleanly.
     const pathParamMatch = ep.path.match(/:(\w+)/);
     const pathParam = pathParamMatch ? pathParamMatch[1] : null;
-    const pathArg = pathParam ? pathParam.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase() : null;
     const hasPathParam = !!pathParam;
-    const desc = buildToolDescription(description, category, price, ep.method, hasPathParam, ep.isFree);
-
-    // URL expression for the generated code: a template literal when a path param
-    // must be interpolated, otherwise a plain double-quoted string.
     const urlExpr = hasPathParam
-      ? "`" + ep.path.replace(`:${pathParam}`, "${args." + pathArg + "}") + "`"
+      ? "`" + ep.path.replace(`:${pathParam}`, "${args." + pathParam + "}") + "`"
       : `"${ep.path}"`;
 
-    // Build input schema
-    let schemaStr;
-    if (hasPathParam && isRead) {
-      schemaStr = `{ ${pathArg}: z.string().min(1).describe("Path parameter that identifies the resource") }`;
-    } else if (isRead) {
-      schemaStr = `{ params: z.string().optional().describe("Query parameters as JSON (e.g. {\\"key\\":\\"value\\"})") }`;
-    } else if (hasPathParam) {
-      schemaStr = `{ ${pathArg}: z.string().min(1).describe("Path parameter that identifies the resource"), body: z.string().optional().describe("JSON request body") }`;
-    } else {
-      schemaStr = `{ body: z.string().describe("JSON request body") }`;
-    }
+    // Typed input fields from the OpenAPI doc for this exact operation, if documented.
+    const oaEntry = openapiFields.get(`${ep.method} ${ep.path}`);
+    const typedQuery = oaEntry && oaEntry.query.length ? oaEntry.query : null;
+    const typedBody  = oaEntry && oaEntry.body.length  ? oaEntry.body  : null;
 
-    // Build handler
-    let handlerBody;
-    if (isRead && hasPathParam) {
-      handlerBody = `const res = await api.get(${urlExpr});`;
-    } else if (isRead) {
-      handlerBody = `let queryParams = {};
+    // Assemble the Zod input shape + the handler body + a usage hint for the description.
+    const fieldParts = [];
+    if (hasPathParam) {
+      fieldParts.push(`${JSON.stringify(pathParam)}: z.string().min(1).describe("Path parameter that identifies the resource")`);
+    }
+    let schemaStr, handlerBody, usageHint;
+
+    if (isRead) {
+      if (typedQuery) {
+        fieldParts.push(zFieldsFromList(typedQuery));
+        schemaStr = `{ ${fieldParts.join(", ")} }`;
+        if (hasPathParam) {
+          handlerBody = `const query = { ...args }; delete query.${pathParam};\n        const res = await api.get(${urlExpr}, { params: query });`;
+        } else {
+          handlerBody = `const res = await api.get(${urlExpr}, { params: args });`;
+        }
+        usageHint = "Read-only. Pass the listed fields directly as typed arguments.";
+      } else if (hasPathParam) {
+        schemaStr = `{ ${fieldParts.join(", ")} }`;
+        handlerBody = `const res = await api.get(${urlExpr});`;
+        usageHint = "Read-only. Provide the path parameter to fetch a single record.";
+      } else {
+        schemaStr = `{ params: z.string().optional().describe("Query parameters as JSON (e.g. {\\"key\\":\\"value\\"})") }`;
+        handlerBody = `let queryParams = {};
         if (args.params) { try { queryParams = JSON.parse(args.params); } catch {} }
         const res = await api.get("${ep.path}", { params: queryParams });`;
-    } else if (ep.method === "PATCH") {
-      handlerBody = `let data = {};
-        if (args.body) { try { data = JSON.parse(args.body); } catch { data = { body: args.body }; } }
-        const res = await api({ method: "PATCH", url: ${urlExpr}, data });`;
+        usageHint = "Read-only. Pass any query parameters as a JSON string via the params argument.";
+      }
     } else {
-      handlerBody = `let data = {};
-        if (args.body) { try { data = JSON.parse(args.body); } catch { data = { body: args.body }; } }
-        const res = await api.post(${urlExpr}, data);`;
+      const sendBody = ep.method === "PATCH"
+        ? `await api({ method: "PATCH", url: ${urlExpr}, data: body })`
+        : ep.method === "PUT"
+          ? `await api({ method: "PUT", url: ${urlExpr}, data: body })`
+          : `await api.post(${urlExpr}, body)`;
+      if (typedBody) {
+        fieldParts.push(zFieldsFromList(typedBody));
+        schemaStr = `{ ${fieldParts.join(", ")} }`;
+        if (hasPathParam) {
+          handlerBody = `const body = { ...args }; delete body.${pathParam};\n        const res = ${sendBody};`;
+        } else {
+          handlerBody = `const body = args;\n        const res = ${sendBody};`;
+        }
+        usageHint = "Provide the listed fields as typed arguments.";
+      } else if (hasPathParam) {
+        schemaStr = `{ ${fieldParts.join(", ")}, body: z.string().optional().describe("JSON request body") }`;
+        handlerBody = `let body = {};
+        if (args.body) { try { body = JSON.parse(args.body); } catch { body = { body: args.body }; } }
+        const res = ${sendBody};`;
+        usageHint = "Provide the path parameter; pass any additional fields as a JSON string via the body argument.";
+      } else {
+        schemaStr = `{ body: z.string().describe("JSON request body") }`;
+        handlerBody = `let body = {};
+        if (args.body) { try { body = JSON.parse(args.body); } catch { body = { body: args.body }; } }
+        const res = ${sendBody};`;
+        usageHint = "Pass the request payload as a JSON string via the body argument.";
+      }
     }
+
+    const desc = buildToolDescription(description, category, price, ep.isFree, usageHint);
 
     code += `
   server.tool(
@@ -184,9 +228,9 @@ async function main() {
   console.log(`📝 Total tools: ${coveredPaths.size} (manual) + ${missing.length} (auto) = ${coveredPaths.size + missing.length}`);
 }
 
-// Build a clean, agent-friendly tool description: purpose + cost + usage/parameter hint.
+// Build a clean, agent-friendly tool description: purpose + cost + usage hint.
 // Uses only data already available to the generator (no fabricated capabilities).
-function buildToolDescription(rawDesc, category, price, method, hasIdParam, isFree) {
+function buildToolDescription(rawDesc, category, price, isFree, usageHint) {
   let base = (rawDesc || "").trim();
   if (base && !/[.!?]$/.test(base)) base += ".";
   if (base.replace(/[.!?]+$/, "").length < 4) {
@@ -194,17 +238,72 @@ function buildToolDescription(rawDesc, category, price, method, hasIdParam, isFr
     base = `${category} endpoint on the Spraay x402 Gateway.`;
   }
   const cost = isFree ? "Free to call." : `Costs ${price} per call.`;
-  let usage;
-  if (hasIdParam && method === "GET") {
-    usage = "Provide the required path parameter to fetch a single record.";
-  } else if (method === "GET") {
-    usage = "Read-only; pass any query parameters as a JSON string via the params argument.";
-  } else if (method === "PATCH") {
-    usage = "Updates a resource; pass the fields to change as a JSON string via the body argument.";
-  } else {
-    usage = "Pass the request payload as a JSON string via the body argument.";
+  return [base, cost, usageHint].filter(Boolean).join(" ");
+}
+
+// Parse an OpenAPI 3.x doc into a map: "METHOD /path" -> { query:[...], body:[...] }.
+// query  = list of { name, type, required, description } from `parameters` (in: query)
+// body   = list of { name, type, required, description } from requestBody JSON properties
+function buildOpenApiFieldMap(oa) {
+  const map = new Map();
+  const paths = (oa && oa.paths) || {};
+  for (const [routePath, methods] of Object.entries(paths)) {
+    for (const [method, op] of Object.entries(methods || {})) {
+      if (!op || typeof op !== "object") continue;
+      const entry = { query: [], body: [] };
+      if (Array.isArray(op.parameters)) {
+        for (const prm of op.parameters) {
+          if (prm && prm.in === "query") {
+            entry.query.push({
+              name: prm.name,
+              type: (prm.schema && prm.schema.type) || "string",
+              required: !!prm.required,
+              description: prm.description || "",
+            });
+          }
+        }
+      }
+      const schema = op.requestBody && op.requestBody.content
+        && op.requestBody.content["application/json"]
+        && op.requestBody.content["application/json"].schema;
+      if (schema && schema.properties) {
+        const req = Array.isArray(schema.required) ? schema.required : [];
+        for (const [name, prop] of Object.entries(schema.properties)) {
+          entry.body.push({
+            name,
+            type: (prop && prop.type) || "any",
+            required: req.includes(name),
+            description: (prop && prop.description) || "",
+          });
+        }
+      }
+      map.set(`${method.toUpperCase()} ${routePath}`, entry);
+    }
   }
-  return `${base} ${cost} ${usage}`;
+  return map;
+}
+
+// JSON-schema type -> Zod constructor (as source text).
+function jsonTypeToZod(type) {
+  switch (type) {
+    case "string":  return "z.string()";
+    case "number":  return "z.number()";
+    case "integer": return "z.number().int()";
+    case "boolean": return "z.boolean()";
+    case "array":   return "z.array(z.any())";
+    case "object":  return "z.record(z.any())";
+    default:        return "z.any()";
+  }
+}
+
+// Render a list of typed fields into a Zod raw-shape fragment (no surrounding braces).
+function zFieldsFromList(fields) {
+  return fields.map(f => {
+    let zod = jsonTypeToZod(f.type);
+    if (!f.required) zod += ".optional()";
+    const d = (f.description || `${f.name} parameter`).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    return `${JSON.stringify(f.name)}: ${zod}.describe("${d}")`;
+  }).join(", ");
 }
 
 function deriveToolName(path) {
