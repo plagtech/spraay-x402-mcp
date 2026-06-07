@@ -140,8 +140,15 @@ async function main() {
 
     // Typed input fields from the OpenAPI doc for this exact operation, if documented.
     const oaEntry = openapiFields.get(`${ep.method} ${ep.path}`);
-    const typedQuery = oaEntry && oaEntry.query.length ? oaEntry.query : null;
-    const typedBody  = oaEntry && oaEntry.body.length  ? oaEntry.body  : null;
+    let typedQuery = oaEntry && oaEntry.query.length ? oaEntry.query : null;
+    let typedBody  = oaEntry && oaEntry.body.length  ? oaEntry.body  : null;
+    // Dedupe: if a path param shares a name with an OpenAPI field (e.g. :id plus an "id"
+    // parameter), the path-param field wins — drop the duplicate so the generated Zod
+    // object literal never declares the same key twice.
+    if (hasPathParam) {
+      if (typedQuery) { typedQuery = typedQuery.filter(f => f.name !== pathParam); if (!typedQuery.length) typedQuery = null; }
+      if (typedBody)  { typedBody  = typedBody.filter(f => f.name !== pathParam);  if (!typedBody.length)  typedBody  = null; }
+    }
 
     // Assemble the Zod input shape + the handler body + a usage hint for the description.
     const fieldParts = [];
