@@ -51,7 +51,86 @@ async function createPaymentClient() {
   return wrapAxiosWithPayment(axios.create({ baseURL: gatewayURL }), client);
 }
 
+// ============================================
+// OUTPUT-SCHEMA LAYER  (Smithery discoverability)
+// --------------------------------------------
+// Declares an outputSchema for EVERY tool and auto-emits a matching
+// `structuredContent` envelope, so `tools/list` advertises output schemas
+// (Smithery 'Output schemas' check) without editing any individual handler.
+// Installed once via enhanceWithOutputSchema(server) at the top of
+// registerTools(), so it also covers the auto-generated tools in
+// auto-tools.ts and survives regeneration of that file.
+//
+// The `content` text block each handler already returns is left byte-for-byte
+// unchanged; structuredContent is purely additive, so no existing behavior
+// or response shape is lost.
+// ============================================
+const SPRAAY_OUTPUT_SHAPE = {
+  ok: z.boolean().describe("True when the gateway call succeeded; false when it returned an error."),
+  data: z.unknown().optional().describe("The gateway response payload on success. The exact shape depends on the tool (see the tool description and the JSON in the text content block)."),
+  error: z.string().optional().describe("Human-readable error message, present only when ok is false."),
+} as const;
+
+// Convert a tool result into a schema-valid structuredContent envelope.
+// Parses the first text block as JSON when possible; falls back to raw text.
+function spraayDeriveStructured(result: any) {
+  let payload: unknown = undefined;
+  const text = Array.isArray(result?.content)
+    ? result.content.find((c: any) => c?.type === "text")?.text
+    : undefined;
+  if (typeof text === "string") {
+    try { payload = JSON.parse(text); } catch { payload = text; }
+  }
+  if (result?.isError) {
+    const msg = typeof payload === "string" ? payload : (text ?? "Tool returned an error.");
+    return { ok: false as const, error: String(msg) };
+  }
+  return { ok: true as const, data: payload };
+}
+
+// Normalize a tool name to snake_case (split camelCase humps) while keeping
+// the established `spraay_` namespace prefix. Only changes names that contain
+// camelCase, e.g. spraay_compute_status_by_jobId -> spraay_compute_status_by_job_id.
+function spraayNormalizeToolName(name: string): string {
+  return name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+}
+
+// Patch server.tool(...) so every registration goes through registerTool()
+// with an outputSchema, and every result gets a structuredContent envelope.
+function enhanceWithOutputSchema(server: McpServer) {
+  const anyServer = server as any;
+  if (anyServer.__spraayEnhanced) return server;
+  const registerTool = typeof anyServer.registerTool === "function" ? anyServer.registerTool.bind(server) : null;
+  if (!registerTool) return server; // SDK lacks registerTool: leave behavior unchanged
+  anyServer.__spraayEnhanced = true;
+  anyServer.tool = (...callArgs: any[]) => {
+    const name: string = callArgs[0];
+    const description: string = callArgs[1];
+    const inputSchema: any = callArgs[2] ?? {};
+    let annotations: any = undefined;
+    let handler: any;
+    if (typeof callArgs[3] === "function") {
+      handler = callArgs[3];            // (name, desc, shape, handler)
+    } else {
+      annotations = callArgs[3];        // (name, desc, shape, annotations, handler)
+      handler = callArgs[4];
+    }
+    const wrapped = async (...hArgs: any[]) => {
+      const result = await handler(...hArgs);
+      if (result && typeof result === "object" && result.structuredContent === undefined) {
+        try { result.structuredContent = spraayDeriveStructured(result); } catch { /* never block a tool call */ }
+      }
+      return result;
+    };
+    const config: any = { description, inputSchema, outputSchema: SPRAAY_OUTPUT_SHAPE };
+    if (annotations) config.annotations = annotations;
+    return registerTool(spraayNormalizeToolName(name), config, wrapped);
+  };
+  return server;
+}
+
 function registerTools(server: McpServer, api: any) {
+  enhanceWithOutputSchema(server);
 
   // ============================================
   // AI (2 tools)
@@ -1384,7 +1463,7 @@ function registerTools(server: McpServer, api: any) {
         mimeType: "application/json",
         text: JSON.stringify({
           name: "Spraay x402 Gateway", version: "4.0.0", gateway: "https://gateway.spraay.app",
-          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 63, activeTools: 62,
+          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 161, activeTools: 161,
           categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data", "GPU/Compute", "Search/RAG"],
           persistence: "Supabase Postgres", protocol: "x402", facilitator: "Coinbase CDP",
         }, null, 2),
@@ -1730,10 +1809,10 @@ async function startHttpServer(api: any) {
     res.json({
       name: "Spraay x402 MCP Server",
       version: "4.0.0",
-      description: "63 MCP tools (62 active) for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
+      description: "161 MCP tools for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
       mcp: "/mcp",
-      tools: 63,
-      activeTools: 62,
+      tools: 161,
+      activeTools: 161,
       resources: 3,
       prompts: 4,
       gateway: gatewayURL,
@@ -1756,7 +1835,7 @@ async function startHttpServer(api: any) {
     console.log(`\n💧 Spraay MCP Server (HTTP) v3.2.0 running on port ${PORT}`);
     console.log(`📡 MCP endpoint: http://localhost:${PORT}/mcp`);
     console.log(`🔗 Gateway: ${gatewayURL}`);
-    console.log(`🔧 63 tools (62 active) + 3 resources + 4 prompts\n`);
+    console.log(`🔧 161 tools + 3 resources + 4 prompts\n`);
   });
 }
 

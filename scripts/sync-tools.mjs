@@ -47,27 +47,31 @@ async function main() {
   const fs = await import("fs");
   const indexSrc = fs.readFileSync("src/index.ts", "utf-8");
 
+  // Normalize any path parameter — template literal (${jobId}) OR colon form (:jobId) —
+  // to a single placeholder, so coverage matching is param-NAME-agnostic. Prevents
+  // generating a duplicate auto-tool for an endpoint a manual tool already covers under a
+  // differently-named param (e.g. manual ${jobId} vs gateway :jobId). Literal path
+  // segments (e.g. /list) are untouched, so genuinely distinct endpoints stay distinct.
+  const normalizePath = (p) => p.replace(/\$\{[^}]+\}/g, ":param").replace(/:\w+/g, ":param");
+
   // Match paths in api.get("/api/v1/...") and api.post("/api/v1/...") calls
   const coveredPaths = new Set();
   const pathRegex = /api\.(get|post|patch|put|delete)\(["'`]([^"'`]+)["'`]/gi;
   let m;
   while ((m = pathRegex.exec(indexSrc)) !== null) {
-    let p = m[2];
-    // Normalize template literal paths like `/api/v1/invoice/${id}`
-    p = p.replace(/\$\{[^}]+\}/g, ":id");
-    coveredPaths.add(p);
+    coveredPaths.add(normalizePath(m[2]));
   }
 
   // Also check for api({ method: "PATCH", url: "..." }) pattern
   const patchRegex = /url:\s*["'`]([^"'`]+)["'`]/gi;
   while ((m = patchRegex.exec(indexSrc)) !== null) {
-    coveredPaths.add(m[1]);
+    coveredPaths.add(normalizePath(m[1]));
   }
 
   console.log(`📋 ${coveredPaths.size} paths already in index.ts`);
 
   // 4. Find missing endpoints
-  const missing = allEndpoints.filter(ep => !coveredPaths.has(ep.path));
+  const missing = allEndpoints.filter(ep => !coveredPaths.has(normalizePath(ep.path)));
   console.log(`🆕 ${missing.length} new endpoints to generate`);
 
   if (missing.length === 0) {
@@ -110,24 +114,37 @@ async function main() {
       ? "{ readOnlyHint: true, openWorldHint: true }"
       : "{ readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }";
 
-    const desc = `${description} | [${category}] | ${price}`;
-    const hasIdParam = ep.path.includes(":id");
+    // Capture ANY path parameter (e.g. :id, :jobId), not just :id, so the URL is
+    // actually substituted instead of being sent literally. The arg is snake_cased
+    // to match the served tool name (e.g. :jobId -> job_id).
+    const pathParamMatch = ep.path.match(/:(\w+)/);
+    const pathParam = pathParamMatch ? pathParamMatch[1] : null;
+    const pathArg = pathParam ? pathParam.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase() : null;
+    const hasPathParam = !!pathParam;
+    const desc = buildToolDescription(description, category, price, ep.method, hasPathParam, ep.isFree);
 
-    // Build schema
+    // URL expression for the generated code: a template literal when a path param
+    // must be interpolated, otherwise a plain double-quoted string.
+    const urlExpr = hasPathParam
+      ? "`" + ep.path.replace(`:${pathParam}`, "${args." + pathArg + "}") + "`"
+      : `"${ep.path}"`;
+
+    // Build input schema
     let schemaStr;
-    if (hasIdParam && isRead) {
-      schemaStr = `{ id: z.string().min(1).describe("Resource ID") }`;
+    if (hasPathParam && isRead) {
+      schemaStr = `{ ${pathArg}: z.string().min(1).describe("Path parameter that identifies the resource") }`;
     } else if (isRead) {
       schemaStr = `{ params: z.string().optional().describe("Query parameters as JSON (e.g. {\\"key\\":\\"value\\"})") }`;
+    } else if (hasPathParam) {
+      schemaStr = `{ ${pathArg}: z.string().min(1).describe("Path parameter that identifies the resource"), body: z.string().optional().describe("JSON request body") }`;
     } else {
       schemaStr = `{ body: z.string().describe("JSON request body") }`;
     }
 
     // Build handler
     let handlerBody;
-    if (isRead && hasIdParam) {
-      const urlTemplate = ep.path.replace(":id", '${args.id}');
-      handlerBody = `const res = await api.get(\`${urlTemplate}\`);`;
+    if (isRead && hasPathParam) {
+      handlerBody = `const res = await api.get(${urlExpr});`;
     } else if (isRead) {
       handlerBody = `let queryParams = {};
         if (args.params) { try { queryParams = JSON.parse(args.params); } catch {} }
@@ -135,11 +152,11 @@ async function main() {
     } else if (ep.method === "PATCH") {
       handlerBody = `let data = {};
         if (args.body) { try { data = JSON.parse(args.body); } catch { data = { body: args.body }; } }
-        const res = await api({ method: "PATCH", url: "${ep.path}", data });`;
+        const res = await api({ method: "PATCH", url: ${urlExpr}, data });`;
     } else {
       handlerBody = `let data = {};
         if (args.body) { try { data = JSON.parse(args.body); } catch { data = { body: args.body }; } }
-        const res = await api.post("${ep.path}", data);`;
+        const res = await api.post(${urlExpr}, data);`;
     }
 
     code += `
@@ -167,6 +184,29 @@ async function main() {
   console.log(`📝 Total tools: ${coveredPaths.size} (manual) + ${missing.length} (auto) = ${coveredPaths.size + missing.length}`);
 }
 
+// Build a clean, agent-friendly tool description: purpose + cost + usage/parameter hint.
+// Uses only data already available to the generator (no fabricated capabilities).
+function buildToolDescription(rawDesc, category, price, method, hasIdParam, isFree) {
+  let base = (rawDesc || "").trim();
+  if (base && !/[.!?]$/.test(base)) base += ".";
+  if (base.replace(/[.!?]+$/, "").length < 4) {
+    // Gateway gave little or nothing — fall back to a category-based purpose.
+    base = `${category} endpoint on the Spraay x402 Gateway.`;
+  }
+  const cost = isFree ? "Free to call." : `Costs ${price} per call.`;
+  let usage;
+  if (hasIdParam && method === "GET") {
+    usage = "Provide the required path parameter to fetch a single record.";
+  } else if (method === "GET") {
+    usage = "Read-only; pass any query parameters as a JSON string via the params argument.";
+  } else if (method === "PATCH") {
+    usage = "Updates a resource; pass the fields to change as a JSON string via the body argument.";
+  } else {
+    usage = "Pass the request payload as a JSON string via the body argument.";
+  }
+  return `${base} ${cost} ${usage}`;
+}
+
 function deriveToolName(path) {
   let cleaned = path
     .replace(/^\/api\/v1\//, "")
@@ -174,6 +214,9 @@ function deriveToolName(path) {
     .replace(/^\//, "")
     .replace(/:(\w+)/g, "by_$1")
     .replace(/[\/\-]/g, "_");
+  // Enforce snake_case: split camelCase humps (e.g. by_jobId -> by_job_id) and lowercase.
+  // Matches the runtime normalization in index.ts so generated names == served names.
+  cleaned = cleaned.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
   return `spraay_${cleaned}`.replace(/__+/g, "_").replace(/_$/, "");
 }
 
