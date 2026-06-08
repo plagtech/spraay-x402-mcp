@@ -1463,7 +1463,7 @@ function registerTools(server: McpServer, api: any) {
         mimeType: "application/json",
         text: JSON.stringify({
           name: "Spraay x402 Gateway", version: "4.0.0", gateway: "https://gateway.spraay.app",
-          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 149, activeTools: 149,
+          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 148, activeTools: 148,
           categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data", "GPU/Compute", "Search/RAG"],
           persistence: "Supabase Postgres", protocol: "x402", facilitator: "Coinbase CDP",
         }, null, 2),
@@ -1809,10 +1809,10 @@ async function startHttpServer(api: any) {
     res.json({
       name: "Spraay x402 MCP Server",
       version: "4.0.0",
-      description: "149 MCP tools for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
+      description: "148 MCP tools for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
       mcp: "/mcp",
-      tools: 149,
-      activeTools: 149,
+      tools: 148,
+      activeTools: 148,
       resources: 3,
       prompts: 4,
       gateway: gatewayURL,
@@ -1835,7 +1835,7 @@ async function startHttpServer(api: any) {
     console.log(`\n💧 Spraay MCP Server (HTTP) v3.2.0 running on port ${PORT}`);
     console.log(`📡 MCP endpoint: http://localhost:${PORT}/mcp`);
     console.log(`🔗 Gateway: ${gatewayURL}`);
-    console.log(`🔧 149 tools + 3 resources + 4 prompts\n`);
+    console.log(`🔧 148 tools + 3 resources + 4 prompts\n`);
   });
 }
 
