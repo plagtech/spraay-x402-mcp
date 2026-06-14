@@ -1,0 +1,39 @@
+# --- Keep the published tarball lean and trustworthy ---
+# The published package must match the GitHub source. Anything that isn't
+# runtime code does not ship.
+
+# The MCP registry publisher binary — NEVER ship this. It is a build/release
+# tool, not part of the server runtime. Its presence in the tarball (while
+# absent from the repo) is what tripped the security review.
+mcp-publisher
+mcp-publisher.exe
+*.exe
+
+# Source & build tooling
+src/
+*.ts
+!dist/**/*.d.ts
+tsconfig*.json
+.npmrc
+
+# Tests & fixtures
+test/
+tests/
+**/*.test.*
+**/*.spec.*
+coverage/
+
+# Dev / CI / editor
+.github/
+.vscode/
+.idea/
+*.log
+.env
+.env.*
+*.local
+
+# Repo meta
+.git/
+.gitignore
+CHANGELOG-draft.md
+scripts/
