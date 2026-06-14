@@ -1,235 +1,204 @@
-# Spraay x402 MCP Server
-
+<!--
+  ============================================================================
+  COUNTS — confirmed against the live gateway manifest on 2026-06-14.
+  Source of truth: https://gateway.spraay.app/.well-known/x402.json
+    Gateway:     153 endpoints  (129 paid + 24 free), 27 categories
+    MCP server:  148 tools      (gateway minus the 5 agent-wallet endpoints)
+  This README uses 148 because it documents the MCP server, which exposes a
+  subset of gateway endpoints as tools. CONFIRM 148 before committing:
+    npm run sync
+    Select-String -Path src\auto-tools.ts -Pattern "server\.tool\(" | Measure-Object | % Count
+  If that prints something other than 148, do one find-replace of "148" here.
+  Keep this number in sync with: the GitHub repo Description, meta.json,
+  smithery.yaml, and the cursor.directory listing. Gateway-level surfaces use
+  153; MCP-server surfaces use 148.
+  ============================================================================
+-->
+ 
+# 💧 Spraay x402 MCP Server
+ 
 [![smithery badge](https://smithery.ai/badge/Plagtech/Spraay-x402-mcp)](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
-[![Version](https://img.shields.io/badge/version-3.2.0-blue)](https://mcp.spraay.app)
-[![Tools](https://img.shields.io/badge/tools-57%20(56%20active)-blueviolet)](https://mcp.spraay.app)
+![Version](https://img.shields.io/badge/version-4.0.0-blue)
+![Tools](https://img.shields.io/badge/tools-148-blueviolet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-**Full-stack DeFi infrastructure for AI agents — 57 pay-per-use tools (56 active) on Base with persistent Supabase storage.**
-
-Connect Claude, Cursor, or any MCP-compatible AI to onchain payments, token swaps, bridge, payroll, invoicing, escrow, oracle data, analytics, AI inference, email, XMTP messaging, webhooks, cron scheduling, IPFS storage, multi-chain RPC, KYC, auth, audit trail, tax & 200+ AI models.
-
-AI agents pay USDC per request via [x402 protocol](https://x402.org). No API keys. No accounts. Just plug in and go.
-
+ 
+**Full-stack DeFi infrastructure for AI agents — 148 pay-per-call tools, backed by the 153-endpoint Spraay x402 Gateway on Base, with Solana, Ethereum, XRP, and Stellar payment rails.**
+ 
+Connect Claude, Cursor, or any MCP client to onchain payments, batch payouts,
+swaps, bridging, payroll, invoicing, escrow, oracle data, analytics, 200+ AI
+models, GPU/compute, research APIs, search/RAG, and more. Agents pay USDC per
+request via the [x402 protocol](https://x402.org) — no API keys, no accounts.
+ 
+> The tool list is generated from the live gateway manifest at build time
+> (`npm run sync`), so the authoritative catalog and pricing always live at the
+> gateway — see [Tool catalog](#tool-catalog). 24 of the gateway's endpoints are
+> **free** (no payment required).
+ 
 ---
-
+ 
 ## Quick Start
-
-### Claude Desktop
-
-Add to `claude_desktop_config.json`:
-
+ 
+Two ways to connect, depending on how payments are authorized. **Read
+[Security & Wallet Safety](#security--wallet-safety) before the local path —
+these tools can move real funds.**
+ 
+### Option 1 — Remote URL (recommended, no private key on your machine)
+ 
+Settlement is handled gateway-side; your client never holds a signing key.
+ 
+**Cursor** (`.cursor/mcp.json`) or **Claude Desktop** (`claude_desktop_config.json`):
+ 
+```json
+{
+  "mcpServers": {
+    "spraay": {
+      "url": "https://spraay-x402-mcp--plagtech.run.tools"
+    }
+  }
+}
+```
+ 
+### Option 2 — Local, self-signed (advanced)
+ 
+Run the server locally and let it sign USDC payments from a wallet you control.
+Use the **scoped, version-pinned** package.
+ 
 ```json
 {
   "mcpServers": {
     "spraay": {
       "command": "npx",
-      "args": ["-y", "spraay-x402-mcp"],
+      "args": ["-y", "@plagtech/spraay-x402-mcp@4.0.0"],
       "env": {
-        "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
+        "EVM_PRIVATE_KEY": "${EVM_PRIVATE_KEY}",
+        "SPRAAY_ENABLE_PAYMENTS": "true",
+        "SPRAAY_MAX_SPEND_USDC": "1.00",
+        "SPRAAY_DAILY_CAP_USDC": "10.00"
       }
     }
   }
 }
 ```
-
-### Cursor
-
-Add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "spraay": {
-      "command": "npx",
-      "args": ["-y", "spraay-x402-mcp"],
-      "env": {
-        "EVM_PRIVATE_KEY": "0xYOUR_PRIVATE_KEY"
-      }
-    }
-  }
-}
-```
-
+ 
+Set `EVM_PRIVATE_KEY` in your shell environment — **never paste a raw key into
+this file.** Use a dedicated hot wallet funded only with what the agent may
+spend. See [Security & Wallet Safety](#security--wallet-safety).
+ 
 ### Smithery
-
+ 
 ```bash
 smithery mcp add Plagtech/Spraay-x402-mcp
 ```
-
-### From Source
-
+ 
+### From source
+ 
 ```bash
 git clone https://github.com/plagtech/spraay-x402-mcp
 cd spraay-x402-mcp
 npm install
-echo "EVM_PRIVATE_KEY=0xYOUR_KEY" > .env
+cp .env.example .env          # then edit .env with your key (it is gitignored)
+npm run build
 npm start
 ```
-
+ 
 ---
-
-## 57 Tools — 15 Categories
-
-### AI ($0.001–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_chat` | Chat with 200+ AI models (GPT-4, Claude, Llama, Gemini) | $0.005 |
-| `spraay_models` | List all available models | $0.001 |
-
-### Payments ($0.001–$0.01)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_batch_execute` | Batch pay up to 200 recipients in one tx | $0.01 |
-| `spraay_batch_estimate` | Estimate gas for batch payment | $0.001 |
-
-### DeFi — Swap ($0.001–$0.01)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_swap_quote` | Get Uniswap V3 swap quote | $0.002 |
-| `spraay_swap_tokens` | List supported swap tokens | $0.001 |
-| `spraay_swap_execute` | Execute swap (unsigned tx) | $0.01 |
-
-### Oracle ($0.001–$0.003)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_oracle_prices` | On-chain token prices with confidence scores | $0.003 |
-| `spraay_oracle_gas` | Gas prices on Base | $0.001 |
-| `spraay_oracle_fx` | Stablecoin FX rates with depeg detection | $0.002 |
-
-### Bridge ($0.001–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_bridge_quote` | Cross-chain bridge quote (8+ chains) | $0.005 |
-| `spraay_bridge_chains` | Supported bridge chains | $0.001 |
-
-### Payroll ($0.001–$0.02)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_payroll_execute` | Pay up to 200 employees in stablecoins | $0.02 |
-| `spraay_payroll_estimate` | Estimate payroll gas and fees | $0.002 |
-| `spraay_payroll_tokens` | List payroll stablecoins | $0.001 |
-
-### Invoice ($0.001–$0.005) — persistent
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_invoice_create` | Create invoice with payment tx | $0.005 |
-| `spraay_invoice_list` | List invoices by address | $0.002 |
-| `spraay_invoice_get` | Look up invoice by ID | $0.001 |
-
-### Analytics ($0.003–$0.005)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_analytics_wallet` | Wallet profile: balances, age, classification | $0.005 |
-| `spraay_analytics_txhistory` | Transaction history with decoded types | $0.003 |
-
-### Escrow ($0.001–$0.008) — persistent
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_escrow_create` | Create conditional escrow with milestones | $0.008 |
-| `spraay_escrow_list` | List escrows by address | $0.002 |
-| `spraay_escrow_get` | Escrow status and details | $0.001 |
-| `spraay_escrow_fund` | Mark escrow as funded | $0.002 |
-| `spraay_escrow_release` | Release funds to beneficiary | $0.005 |
-| `spraay_escrow_cancel` | Cancel escrow | $0.002 |
-
-### AI Inference ($0.008–$0.01)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_classify_address` | AI wallet classification with risk scoring | $0.008 |
-| `spraay_classify_tx` | AI transaction classification and risk analysis | $0.008 |
-| `spraay_explain_contract` | AI smart contract analysis and explanation | $0.01 |
-| `spraay_summarize` | AI intelligence briefing for any address or tx | $0.008 |
-
-### Communication ($0.001–$0.005)
-| Tool | Description | Cost | Status |
-|------|-------------|------|--------|
-| `spraay_notify_email` | Send email notifications (AgentMail) | $0.003 | ✅ Live |
-| `spraay_notify_sms` | Send SMS notifications | $0.005 | ⏳ Simulated |
-| `spraay_notify_status` | Check notification delivery status | $0.001 | ✅ Live |
-| `spraay_webhook_register` | Register webhook endpoint | $0.003 | ✅ Persistent |
-| `spraay_webhook_test` | Test webhook delivery | $0.002 | ✅ Persistent |
-| `spraay_webhook_list` | List registered webhooks | $0.001 | ✅ Persistent |
-| `spraay_webhook_delete` | Delete webhook | $0.001 | ✅ Persistent |
-| `spraay_xmtp_send` | Send encrypted XMTP message | $0.003 | ✅ Live |
-| `spraay_xmtp_inbox` | Read XMTP inbox | $0.002 | ✅ Live |
-
-### Infrastructure ($0.001–$0.005)
-| Tool | Description | Cost | Status |
-|------|-------------|------|--------|
-| `spraay_rpc_call` | Multi-chain JSON-RPC via Alchemy | $0.001 | ✅ Live |
-| `spraay_rpc_chains` | List supported RPC chains | $0.001 | ✅ Live |
-| `spraay_storage_pin` | Pin to IPFS via Pinata | $0.005 | ✅ Live |
-| `spraay_storage_get` | Retrieve pinned content | $0.002 | ✅ Live |
-| `spraay_storage_status` | Check pin status | $0.001 | ✅ Live |
-| `spraay_cron_create` | Create scheduled job | $0.005 | ✅ Persistent |
-| `spraay_cron_list` | List scheduled jobs | $0.001 | ✅ Persistent |
-| `spraay_cron_cancel` | Cancel scheduled job | $0.001 | ✅ Persistent |
-| `spraay_logs_ingest` | Ingest structured logs | $0.001 | ✅ Persistent |
-| `spraay_logs_query` | Query logs | $0.003 | ✅ Persistent |
-
-### Identity & Access ($0.001–$0.05) — persistent
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_kyc_verify` | Initiate KYC/KYB verification | $0.05 |
-| `spraay_kyc_status` | Check KYC status | $0.005 |
-| `spraay_auth_session` | Create scoped auth session | $0.005 |
-| `spraay_auth_verify` | Verify session token | $0.001 |
-
-### Compliance ($0.001–$0.02) — persistent
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_audit_log` | Record audit trail entry | $0.001 |
-| `spraay_audit_query` | Query audit trail | $0.005 |
-| `spraay_tax_calculate` | Calculate crypto tax (FIFO) | $0.01 |
-| `spraay_tax_report` | Retrieve tax report | $0.02 |
-
-### Data ($0.001–$0.002)
-| Tool | Description | Cost |
-|------|-------------|------|
-| `spraay_prices` | Live token prices on Base | $0.002 |
-| `spraay_balances` | ETH + ERC-20 balances for any wallet | $0.002 |
-| `spraay_resolve` | ENS / Basename resolution | $0.001 |
-
+ 
+## Tool catalog
+ 
+148 tools spanning the gateway's 27 categories. Highlights by area:
+ 
+| Area | What it covers |
+| --- | --- |
+| **AI & Inference** | 200+ LLMs (OpenAI-compatible), wallet/tx classification, contract explanation, summaries |
+| **Compute** | Text / image / video / TTS / STT / embeddings across Replicate, Chutes, OpenRouter; batch jobs |
+| **Compute Futures** | Prepaid compute credits with tier discounts; draw down per inference |
+| **Bittensor** | Decentralized inference, image gen, and embeddings via SN64 / SN19 |
+| **Payments** | Batch payouts up to 200 recipients (Base, XRP Ledger, Stellar); estimates |
+| **Payroll** | Stablecoin payroll runs across Base, Ethereum, Solana |
+| **Invoicing & Escrow** | Crypto-native invoices and milestone escrow (persistent) |
+| **DeFi & Data** | Swaps (Uniswap V3 / Aerodrome), oracle prices/gas/FX, bridge quotes, balances, ENS/Basename |
+| **Analytics** | Wallet profiles and decoded transaction history |
+| **Research** | 250M+ papers (OpenAlex), arXiv, Crossref, PubMed, PubChem, US Census, dictionary |
+| **Search & RAG** | Web search, content extraction, question answering |
+| **Communication** | Email, SMS, XMTP messaging, webhooks |
+| **Infrastructure** | Multi-chain RPC, IPFS/Arweave storage, cron scheduling, structured logs |
+| **Identity & Compliance** | KYC/sanctions screening, auth sessions, audit trail, crypto tax (FIFO, IRS 8949) |
+| **Supply Chain (SCTP)** | Supplier registration, purchase orders, invoice verification, settlement |
+| **Robotics (RTP)** | Register robots, dispatch paid tasks, escrow-backed completion |
+| **Trust & Safety** | ProofLayer trust scores; free token-safety, address-safety, and tx-decode checks |
+ 
+**24 free endpoints** require no payment — gas/prices/chain-status, address &
+batch validation, ENS resolution, unit conversion, x402 discovery probes, and
+model/compute discovery.
+ 
+For the exact, current tool list and per-tool pricing, query the live manifest:
+ 
+```bash
+curl https://gateway.spraay.app/.well-known/x402.json
+```
+ 
+Pricing ranges from $0.001 (reads) to ~$0.10 (payroll, escrow release, tax),
+settled in USDC on Base.
+ 
 ---
-
-## How It Works
-
-1. AI agent calls a tool (e.g. `spraay_batch_execute`)
-2. MCP server hits the [Spraay x402 Gateway](https://gateway.spraay.app)
-3. Gateway returns `402 Payment Required` with USDC amount
-4. `@x402/axios` auto-signs a USDC micropayment from your wallet
-5. Gateway validates payment and returns data
-6. Agent gets the response
-
-All payments are micro-transactions ($0.001–$0.05) in USDC on Base mainnet.
-
+ 
+## How it works
+ 
+1. An agent calls a tool (e.g. `spraay_batch_execute`).
+2. The MCP server hits the [Spraay x402 Gateway](https://gateway.spraay.app).
+3. The gateway responds `402 Payment Required` with a USDC amount.
+4. **Remote mode:** settlement is handled gateway-side.
+   **Local mode:** `@x402/axios` signs a USDC micropayment from your wallet,
+   subject to the spend caps you set.
+5. The gateway validates payment and returns the data.
 ---
-
+ 
+## Security & Wallet Safety
+ 
+These tools can initiate **real USDC payments**. Treat the server like any tool
+with funds access.
+ 
+- **Prefer Option 1 (remote URL)** — no signing key on your machine.
+- If you self-sign (Option 2): use a **dedicated hot wallet**, funded only with
+  what you'll let the agent spend. Never a key that controls other assets.
+- **Set spend caps.** `SPRAAY_MAX_SPEND_USDC` (per call) and
+  `SPRAAY_DAILY_CAP_USDC` bound the blast radius if an agent loops or is
+  manipulated by upstream prompt injection.
+- **Gate payments.** Leave `SPRAAY_ENABLE_PAYMENTS` unset/false for read-only use.
+- **Never** put a raw private key in a config file, issue, or any committed file.
+  Keys live in a gitignored `.env` or your shell environment only.
+The published npm package ships only `dist/`, `README`, and `LICENSE` (verify
+with `npm pack --dry-run`) — no binaries, no build tooling, no install scripts.
+ 
+Report security issues to **security@spraay.app**, not a public issue.
+ 
+---
+ 
 ## Requirements
-
-- **Wallet**: EVM private key with USDC on Base (even $1 covers thousands of calls)
-- **Node.js**: 18+
-- **MCP Client**: Claude Desktop, Cursor, or any MCP-compatible client
-
-## Environment Variables
-
+ 
+- **Node.js** 20+
+- **MCP client** — Claude Desktop, Cursor, or any MCP-compatible client
+- **Wallet** (local mode only) — an EVM key with USDC on Base; even $1 covers
+  thousands of calls
+## Environment variables
+ 
 | Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `EVM_PRIVATE_KEY` | Yes | — | Wallet private key for USDC payments |
-| `SPRAAY_GATEWAY_URL` | No | `https://gateway.spraay.app` | Override gateway URL |
-
+| --- | --- | --- | --- |
+| `EVM_PRIVATE_KEY` | Local mode only | — | Wallet key for USDC signing. Use a dedicated, capped hot wallet. |
+| `SPRAAY_ENABLE_PAYMENTS` | No | `false` | Must be `true` to allow fund-moving tools. |
+| `SPRAAY_MAX_SPEND_USDC` | No | — | Per-call spend ceiling. |
+| `SPRAAY_DAILY_CAP_USDC` | No | — | Rolling 24h spend ceiling. |
+| `SPRAAY_GATEWAY_URL` | No | `https://gateway.spraay.app` | Override the gateway URL. |
+ 
 ---
-
+ 
 ## Links
-
-- **MCP Server**: [mcp.spraay.app](https://mcp.spraay.app)
-- **Gateway**: [gateway.spraay.app](https://gateway.spraay.app)
-- **Bazaar Discovery**: [gateway.spraay.app/.well-known/x402.json](https://gateway.spraay.app/.well-known/x402.json)
-- **Spraay App**: [spraay.app](https://spraay.app)
-- **Smithery**: [smithery.ai/servers/Plagtech/Spraay-x402-mcp](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
-- **x402 Protocol**: [x402.org](https://x402.org)
-
+ 
+- **MCP server:** [mcp.spraay.app](https://mcp.spraay.app)
+- **Gateway:** [gateway.spraay.app](https://gateway.spraay.app)
+- **Manifest:** [gateway.spraay.app/.well-known/x402.json](https://gateway.spraay.app/.well-known/x402.json)
+- **Smithery:** [smithery.ai/servers/Plagtech/Spraay-x402-mcp](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
+- **x402:** [x402.org](https://x402.org)
 ## License
-
+ 
 MIT
