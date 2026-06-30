@@ -1865,7 +1865,7 @@ function registerTools(server: McpServer, api: any) {
         uri: "spraay://gateway/info",
         mimeType: "application/json",
         text: JSON.stringify({
-          name: "Spraay x402 Gateway", version: "4.0.0", gateway: "https://gateway.spraay.app",
+          name: "Spraay x402 Gateway", version: pkg.version, gateway: "https://gateway.spraay.app",
           network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 169, activeTools: 169,
           categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data", "GPU/Compute", "Search/RAG"],
           persistence: "Supabase Postgres", protocol: "x402", facilitator: "Coinbase CDP",
@@ -2196,7 +2196,7 @@ function registerTools(server: McpServer, api: any) {
 export function createSandboxServer() {
   const server = new McpServer({
     name: "Spraay x402 Gateway",
-    version: "4.0.0",
+    version: pkg.version,
   });
   const mockApi = axios.create({ baseURL: gatewayURL });
   registerTools(server, mockApi);
@@ -2211,7 +2211,7 @@ async function startHttpServer(api: any) {
   app.get("/", (_req: any, res: any) => {
     res.json({
       name: "Spraay x402 MCP Server",
-      version: "4.0.0",
+      version: pkg.version,
       description: "169 MCP tools for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
       mcp: "/mcp",
       tools: 169,
@@ -2273,7 +2273,7 @@ async function startHttpServer(api: any) {
   app.all("/mcp", async (req: any, res: any) => {
     const server = new McpServer({
       name: "Spraay x402 Gateway",
-      version: "4.0.0",
+      version: pkg.version,
     });
     registerTools(server, api);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined as any });
@@ -2283,7 +2283,7 @@ async function startHttpServer(api: any) {
   });
 
   app.listen(PORT, () => {
-    console.log(`\n💧 Spraay MCP Server (HTTP) v3.2.0 running on port ${PORT}`);
+    console.log(`\n💧 Spraay MCP Server (HTTP) v${pkg.version} running on port ${PORT}`);
     console.log(`📡 MCP endpoint: http://localhost:${PORT}/mcp`);
     console.log(`🔗 Gateway: ${gatewayURL}`);
     console.log(`🔧 169 tools + 3 resources + 4 prompts\n`);
@@ -2294,7 +2294,7 @@ async function startHttpServer(api: any) {
 async function startStdioServer(api: any) {
   const server = new McpServer({
     name: "Spraay x402 Gateway",
-    version: "4.0.0",
+    version: pkg.version,
   });
   registerTools(server, api);
   const transport = new StdioServerTransport();
@@ -2338,7 +2338,7 @@ export default function createServer({ config }: { config?: z.infer<typeof confi
 
   const server = new McpServer({
     name: "Spraay",
-    version: "4.0.0",
+    version: pkg.version,
   });
 
   // If we have a real key, create a payment-enabled client

@@ -1,5 +1,5 @@
 # Smithery configuration — https://smithery.ai/docs/build/project-config/smithery.yaml
-name: "Spraay"
+name: "Spraay-x402-mcp"
 description: "Full-stack DeFi infrastructure for AI agents on Base. 169 tools for payments, swaps, bridge, payroll, invoicing, escrow, oracle, analytics, AI inference & data. Agents pay USDC per request via x402 protocol. No API keys needed."
 icon: "https://raw.githubusercontent.com/plagtech/spraay-x402-mcp/main/spraay-logo-1000x1000.png"
 
