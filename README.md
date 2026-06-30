@@ -23,7 +23,7 @@
 # 💧 Spraay x402 MCP Server
 
 [![smithery badge](https://smithery.ai/badge/Plagtech/Spraay-x402-mcp)](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
-![Version](https://img.shields.io/badge/version-4.0.0-blue)
+![Version](https://img.shields.io/badge/version-4.1.0-blue)
 ![Tools](https://img.shields.io/badge/tools-148-blueviolet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -43,15 +43,53 @@ request via the [x402 protocol](https://x402.org) — no API keys, no accounts.
 
 ## Quick Start
 
-Two ways to connect, depending on how payments are authorized. **Read
-[Security & Wallet Safety](#security--wallet-safety) before the local path —
-these tools can move real funds.**
+Install and go — **no config, no API keys, no env vars.** On first run the
+server auto-creates a wallet, saves it to `~/.spraay/.session`, and prints the
+address to stderr. Fund that address with USDC on Base and start calling tools.
 
-### Option 1 — Remote URL (recommended, no private key on your machine)
+**Read [Security & Wallet Safety](#security--wallet-safety) — these tools move
+real funds.**
 
-Settlement is handled gateway-side; your client never holds a signing key.
+### One-line install (Claude Code)
+
+```bash
+claude mcp add spraay -s user -- npx -y spraay-x402-mcp
+```
+
+### Manual config (Cursor / Claude Desktop)
 
 **Cursor** (`.cursor/mcp.json`) or **Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "spraay": {
+      "command": "npx",
+      "args": ["-y", "spraay-x402-mcp"]
+    }
+  }
+}
+```
+
+That's it. The first run prints something like:
+
+```
+💧 Spraay created a new wallet: 0xABC…123
+   Private key saved to ~/.spraay/.session (keep it safe — it controls funds).
+   Fund this address with USDC on Base to start paying for tool calls.
+```
+
+#### Optional — bring your own wallet
+
+To sign with a key you already control instead of the auto-created one, set
+`EVM_PRIVATE_KEY` in your environment (it overrides the session wallet).
+**Never paste a raw key into a committed config file** — use a dedicated hot
+wallet funded only with what the agent may spend. See
+[Security & Wallet Safety](#security--wallet-safety).
+
+### Remote URL (no wallet on your machine)
+
+Settlement is handled gateway-side; your client never holds a signing key.
 
 ```json
 {
@@ -62,35 +100,6 @@ Settlement is handled gateway-side; your client never holds a signing key.
   }
 }
 ```
-
-### Option 2 — Local, self-signed (advanced)
-
-Run the server locally and let it sign USDC payments from a wallet you control.
-Use the **scoped, version-pinned** package.
-
-```jsonc
-{
-  "mcpServers": {
-    "spraay": {
-      "command": "npx",
-      "args": ["-y", "@plagtech/spraay-x402-mcp@4.0.0"],
-      "env": {
-        "EVM_PRIVATE_KEY": "${EVM_PRIVATE_KEY}",
-        "SPRAAY_ENABLE_PAYMENTS": "true"
-        // Optional autonomy leash — add these ONLY when running an
-        // unsupervised agent. Leave them out for interactive/human use
-        // (no limit). See Security & Wallet Safety below.
-        // "SPRAAY_MAX_SPEND_USDC": "1.00",
-        // "SPRAAY_DAILY_CAP_USDC": "10.00"
-      }
-    }
-  }
-}
-```
-
-Set `EVM_PRIVATE_KEY` in your shell environment — **never paste a raw key into
-this file.** Use a dedicated hot wallet funded only with what the agent may
-spend. See [Security & Wallet Safety](#security--wallet-safety).
 
 ### Smithery
 
@@ -104,9 +113,8 @@ smithery mcp add Plagtech/Spraay-x402-mcp
 git clone https://github.com/plagtech/spraay-x402-mcp
 cd spraay-x402-mcp
 npm install
-cp .env.example .env          # then edit .env with your key (it is gitignored)
 npm run build
-npm start
+npm start                     # auto-creates a wallet on first run
 ```
 
 ---
@@ -156,8 +164,8 @@ settled in USDC on Base.
 2. The MCP server hits the [Spraay x402 Gateway](https://gateway.spraay.app).
 3. The gateway responds `402 Payment Required` with a USDC amount.
 4. **Remote mode:** settlement is handled gateway-side.
-   **Local mode:** `@x402/axios` signs a USDC micropayment from your wallet,
-   subject to the spend caps you set.
+   **Local mode:** `@x402/axios` signs a USDC micropayment from the auto-created
+   (or overridden) wallet.
 5. The gateway validates payment and returns the data.
 
 ---
@@ -167,19 +175,18 @@ settled in USDC on Base.
 These tools can initiate **real USDC payments**. Treat the server like any tool
 with funds access.
 
-- **Prefer Option 1 (remote URL)** — no signing key on your machine.
-- If you self-sign (Option 2): use a **dedicated hot wallet**, funded only with
-  what you'll let the agent spend. Never a key that controls other assets.
-- **Payments are off by default.** `SPRAAY_ENABLE_PAYMENTS` must be `true` before
-  any fund-moving tool will run. A fresh install cannot spend until you opt in.
-  Read-only tools work regardless.
-- **Spend caps are optional — an autonomy leash for unattended agents.** When you
-  run an agent with no human watching, set `SPRAAY_MAX_SPEND_USDC` (per call) and
-  `SPRAAY_DAILY_CAP_USDC` to bound the blast radius if it loops or is manipulated
-  by upstream prompt injection. **Leave them unset for interactive use** — a human
-  at the keyboard is the supervision, and there's no limit unless you add one.
-- **Never** put a raw private key in a config file, issue, or any committed file.
-  Keys live in a gitignored `.env` or your shell environment only.
+- **The auto-created wallet only holds what you send it.** Fund it with only as
+  much USDC as you're willing to let the agent spend. It starts empty, so a fresh
+  install cannot move funds until you fund it; read-only tools work regardless.
+- **The session key lives at `~/.spraay/.session`.** Protect that file like any
+  secret — anyone who reads it controls the wallet. It's written with `0600`
+  permissions on POSIX systems. Back it up if the funds matter; delete it to
+  rotate to a new wallet on the next run.
+- **Prefer the remote URL** if you'd rather keep no signing key on your machine —
+  settlement is handled gateway-side.
+- If you bring your own key via `EVM_PRIVATE_KEY`, use a **dedicated hot wallet**
+  that controls no other assets, and **never** put a raw private key in a config
+  file, issue, or any committed file — keep it in your shell environment only.
 
 The published npm package ships only `dist/`, `README`, and `LICENSE` (verify
 with `npm pack --dry-run`) — no binaries, no build tooling, no install scripts.
@@ -192,17 +199,17 @@ Report security issues to **security@spraay.app**, not a public issue.
 
 - **Node.js** 20+
 - **MCP client** — Claude Desktop, Cursor, or any MCP-compatible client
-- **Wallet** (local mode only) — an EVM key with USDC on Base; even $1 covers
+- **USDC on Base** — fund the auto-created wallet (or your own); even $1 covers
   thousands of calls
 
 ## Environment variables
 
+None are required — the server runs with zero configuration. All of the
+following are optional overrides.
+
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `EVM_PRIVATE_KEY` | Local mode only | — | Wallet key for USDC signing. Use a dedicated, capped hot wallet. |
-| `SPRAAY_ENABLE_PAYMENTS` | No | `false` | Master gate. Must be `true` to allow any fund-moving tool. Off = read-only. |
-| `SPRAAY_MAX_SPEND_USDC` | No | unset = no limit | Optional per-call ceiling. Set only for unattended agents. |
-| `SPRAAY_DAILY_CAP_USDC` | No | unset = no limit | Optional rolling 24h ceiling. Set only for unattended agents. |
+| `EVM_PRIVATE_KEY` | No | auto-created at `~/.spraay/.session` | Override the auto-created wallet with your own key. Use a dedicated, funded-as-needed hot wallet. |
 | `SPRAAY_GATEWAY_URL` | No | `https://gateway.spraay.app` | Override the gateway URL. |
 
 ---

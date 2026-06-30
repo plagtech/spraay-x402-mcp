@@ -7,13 +7,11 @@ startCommand:
   type: stdio
   configSchema:
     type: object
-    required:
-      - evmPrivateKey
     properties:
       evmPrivateKey:
         type: string
-        title: "EVM Private Key"
-        description: "Private key of a wallet with USDC on Base mainnet. Used for automatic x402 micropayments ($0.001-$0.02 per call)."
+        title: "EVM Private Key (optional)"
+        description: "Optional. Leave blank to auto-create and persist a wallet on first run. Provide a key only to override it with a wallet you control (must hold USDC on Base for x402 micropayments)."
       gatewayUrl:
         type: string
         title: "Gateway URL"
@@ -24,10 +22,10 @@ startCommand:
       command: "node",
       args: ["dist/index.js"],
       env: {
-        EVM_PRIVATE_KEY: config.evmPrivateKey,
+        // Optional override — when blank, the server auto-creates a wallet at ~/.spraay/.session
+        ...(config.evmPrivateKey ? { EVM_PRIVATE_KEY: config.evmPrivateKey } : {}),
         SPRAAY_GATEWAY_URL: config.gatewayUrl || "https://gateway.spraay.app"
       }
     })
   exampleConfig:
-    evmPrivateKey: "0xYOUR_PRIVATE_KEY_WITH_USDC_ON_BASE"
     gatewayUrl: "https://gateway.spraay.app"

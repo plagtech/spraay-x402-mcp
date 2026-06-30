@@ -12,7 +12,12 @@ import { base } from "viem/chains";
 import { config } from "dotenv";
 import { z } from "zod";
 import express from "express";
+import { readFileSync, realpathSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import { registerAutoTools, autoToolCount } from "./auto-tools.js";
+import { resolveWallet, logWallet } from "./wallet.js";
+import { checkForUpdates } from "./version-check.js";
 
 config();
 
@@ -20,20 +25,29 @@ const gatewayURL = process.env.SPRAAY_GATEWAY_URL || "https://gateway.spraay.app
 const PORT = process.env.MCP_PORT || process.env.PORT || 3000;
 const TRANSPORT = process.env.MCP_TRANSPORT || "stdio";
 
+// Package identity, read at runtime so the version-check stays in sync with
+// whatever is actually installed (works in dist/ and in dev via tsx).
+const pkg: { name: string; version: string } = (() => {
+  try {
+    const p = join(dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+    return JSON.parse(readFileSync(p, "utf-8"));
+  } catch {
+    return { name: "spraay-x402-mcp", version: "0.0.0" };
+  }
+})();
+
 // Reusable Zod validators
 const ethAddr = z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Must be a valid Ethereum address");
 const txHash = z.string().regex(/^0x[a-fA-F0-9]{64}$/, "Must be a valid transaction hash");
 const positiveAmount = z.string().regex(/^\d+(\.\d+)?$/, "Must be a positive number");
 
 async function createPaymentClient() {
-  const evmPrivateKey = process.env.EVM_PRIVATE_KEY as `0x${string}`;
-  if (!evmPrivateKey) {
-    throw new Error(
-      "EVM_PRIVATE_KEY is required. Set it to a wallet with USDC on Base."
-    );
-  }
+  // Auto-resolve a wallet: EVM_PRIVATE_KEY override -> persisted session key ->
+  // freshly generated key. Never requires the user to configure anything.
+  const wallet = resolveWallet();
+  logWallet(wallet);
   const client = new x402Client();
-  const account = privateKeyToAccount(evmPrivateKey);
+  const account = privateKeyToAccount(wallet.privateKey);
   const walletClient = createWalletClient({
     account,
     chain: base,
@@ -1851,11 +1865,19 @@ async function startStdioServer(api: any) {
 }
 
 async function main() {
-  const api = await createPaymentClient();
+  // Fire-and-forget: never blocks startup.
+  void checkForUpdates(pkg.name, pkg.version);
 
   if (TRANSPORT === "http") {
+    // Remote hosting / Smithery scan: only sign when a key is explicitly set;
+    // otherwise serve read-only with a plain (non-paying) client, as before.
+    const api = process.env.EVM_PRIVATE_KEY
+      ? await createPaymentClient()
+      : axios.create({ baseURL: gatewayURL });
     await startHttpServer(api);
   } else {
+    // Local stdio (default): auto-create/persist a wallet if none is provided.
+    const api = await createPaymentClient();
     await startStdioServer(api);
   }
 }
@@ -1905,15 +1927,22 @@ export default function createServer({ config }: { config?: z.infer<typeof confi
   return server.server;
 }
 
-// Direct execution: stdio or http mode
-if (process.env.EVM_PRIVATE_KEY) {
+// Run the server only when this file is executed directly (npx / node dist/index.js),
+// not when imported as a module (e.g. by Smithery's default export). The wallet is
+// auto-created on first run, so no env var is required to start.
+const invokedDirectly = (() => {
+  try {
+    return (
+      !!process.argv[1] &&
+      realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
   main().catch((error) => {
-    console.error("Spraay MCP server error:", error);
-    process.exit(1);
-  });
-} else if (TRANSPORT === "http") {
-  const mockApi = axios.create({ baseURL: gatewayURL });
-  startHttpServer(mockApi).catch((error) => {
     console.error("Spraay MCP server error:", error);
     process.exit(1);
   });

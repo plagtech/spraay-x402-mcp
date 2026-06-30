@@ -1,7 +1,7 @@
 {
-  "name": "@plagtech/spraay-x402-mcp",
-  "version": "4.0.0",
-  "description": "Auto-syncing MCP server for the Spraay x402 Gateway. Fetches endpoints at startup — no manual tool-list maintenance. Pay-per-call x402, USDC, no API keys.",
+  "name": "spraay-x402-mcp",
+  "version": "4.1.0",
+  "description": "Auto-syncing MCP server for the Spraay x402 Gateway. Auto-creates a wallet on first run — no env vars, just fund and go. Pay-per-call x402, USDC, no API keys.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
