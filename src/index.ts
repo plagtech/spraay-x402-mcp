@@ -3,6 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { LATEST_PROTOCOL_VERSION } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
 import { x402Client, wrapAxiosWithPayment } from "@x402/axios";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
@@ -2218,6 +2219,54 @@ async function startHttpServer(api: any) {
       resources: 3,
       prompts: 4,
       gateway: gatewayURL,
+    });
+  });
+
+  // MCP Server Card for discovery scanners (Smithery, ora.run, MCP registry).
+  // Hybrid shape: flat registry/ora fields for pre-connection discovery +
+  // SEP-1649 structural fields (transport/capabilities). See SEP-1649.
+  app.get("/.well-known/mcp/server-card.json", (req: any, res: any) => {
+    // Deployment-agnostic: derive the absolute base from the incoming request
+    // (Railway sets x-forwarded-proto), falling back to the known prod URL.
+    const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
+    const host = req.headers["host"] || "spraay-x402-mcp-production.up.railway.app";
+    const base = `${proto}://${host}`;
+    res.json({
+      // --- Flat discovery fields (Smithery / ora.run pre-connection scan) ---
+      name: "spraay-x402-mcp",
+      title: "Spraay x402 MCP Server",
+      description: "169 MCP tools for full-stack DeFi infrastructure on Base. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402.",
+      version: pkg.version,
+      serverUrl: `${base}/mcp`,
+      websiteUrl: "https://github.com/plagtech/spraay-x402-mcp",
+      documentationUrl: "https://github.com/plagtech/spraay-x402-mcp#readme",
+      iconUrl: "https://raw.githubusercontent.com/plagtech/spraay-x402-mcp/main/spraay-logo-1000x1000.png",
+      // --- SEP-1649 structural fields ---
+      protocolVersion: LATEST_PROTOCOL_VERSION,
+      serverInfo: {
+        name: "spraay-x402-mcp",
+        title: "Spraay x402 MCP Server",
+        version: pkg.version,
+      },
+      transport: {
+        type: "streamable-http",
+        endpoint: "/mcp",
+        url: `${base}/mcp`,
+      },
+      capabilities: {
+        tools: { listChanged: false },
+        resources: { listChanged: false },
+        prompts: { listChanged: false },
+      },
+      tools: "dynamic",
+      resources: "dynamic",
+      prompts: "dynamic",
+      _meta: {
+        toolCount: 169,
+        gateway: gatewayURL,
+        paymentProtocol: "x402",
+        network: "Base (eip155:8453)",
+      },
     });
   });
 
