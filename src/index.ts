@@ -1458,6 +1458,394 @@ function registerTools(server: McpServer, api: any) {
       }
     }
   );
+
+  // ============================================
+  // DEX — DexScreener (4 tools, FREE)
+  // ============================================
+
+  server.tool(
+    "spraay_free_dex_search",
+    "Search DEX token pairs across all chains via DexScreener (Uniswap, PancakeSwap, Raydium, etc.). Returns matching pairs with price, liquidity, 24h volume, and chain. FREE — no x402 charge.",
+    {
+      q: z.string().min(1).describe("Search query — token symbol, name, or pair address (e.g. 'WETH', 'PEPE', 'USDC/WETH')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ q }) => {
+      try {
+        const res = await api.get("/free/dex/search", { params: { q } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `DEX search error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_free_dex_pairs",
+    "Get detailed data for a specific DEX pair on a specific chain via DexScreener. Returns price, liquidity, volume, transaction counts, and FDV. FREE — no x402 charge.",
+    {
+      chainId: z.string().min(1).describe("Chain identifier (e.g. 'ethereum', 'base', 'bsc', 'solana', 'arbitrum')"),
+      pairAddress: z.string().min(1).describe("Pair contract address (e.g. '0x...' on EVM chains)"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ chainId, pairAddress }) => {
+      try {
+        const res = await api.get(`/free/dex/pairs/${chainId}/${pairAddress}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `DEX pair error: ${error.message}. Check chainId and pairAddress.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_free_dex_tokens",
+    "Get all DEX trading pairs for a given token address via DexScreener. Returns every pair the token trades in, with price and liquidity per pair. FREE — no x402 charge.",
+    {
+      address: z.string().min(1).describe("Token contract address to look up all pairs for (e.g. '0x...')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ address }) => {
+      try {
+        const res = await api.get(`/free/dex/tokens/${address}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `DEX tokens error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_free_dex_trending",
+    "Get currently trending tokens and pairs across DEXes via DexScreener. Returns the hottest pairs by recent volume and price action. FREE — no x402 charge.",
+    {},
+    { readOnlyHint: true, openWorldHint: true },
+    async () => {
+      try {
+        const res = await api.get("/free/dex/trending");
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `DEX trending error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  // ============================================
+  // Free Chat — NVIDIA NIM (3 tools, FREE)
+  // ============================================
+
+  server.tool(
+    "spraay_free_chat",
+    "Send a message to a free AI model hosted on NVIDIA NIM (Llama, Mistral, and more). Returns the model's completion at no cost. Use spraay_free_chat_models to list available models. FREE — no x402 charge.",
+    {
+      message: z.string().min(1).max(32000).describe("User message to send to the model"),
+      model: z.string().optional().describe("NVIDIA NIM model ID (e.g. 'meta/llama-3.1-70b-instruct'). Omit to use the gateway default. List via spraay_free_chat_models."),
+      systemPrompt: z.string().max(8000).optional().describe("Optional system prompt to set model behavior and context"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ message, model, systemPrompt }) => {
+      try {
+        const messages: any[] = [];
+        if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
+        messages.push({ role: "user", content: message });
+        const res = await api.post("/free/chat", { ...(model && { model }), messages });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Free chat error: ${error.message}. Verify model ID with spraay_free_chat_models.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_free_chat_models",
+    "List the free AI models available for spraay_free_chat (NVIDIA NIM catalog). Returns model IDs and metadata. FREE — no x402 charge.",
+    {},
+    { readOnlyHint: true, openWorldHint: true },
+    async () => {
+      try {
+        const res = await api.get("/free/chat/models");
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Free chat models error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_free_models",
+    "List the full model catalog (free mirror of the paid spraay_models list). Returns all model IDs, providers, and context window sizes. FREE — no x402 charge.",
+    {},
+    { readOnlyHint: true, openWorldHint: true },
+    async () => {
+      try {
+        const res = await api.get("/free/models");
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Free models error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  // ============================================
+  // Prediction Markets — Polymarket & Kalshi (7 tools)
+  // ============================================
+
+  server.tool(
+    "spraay_markets_polymarket_events",
+    "List prediction market events from Polymarket. Returns events with their markets, outcomes, and current prices. Costs $0.001 USDC.",
+    {
+      limit: z.number().int().min(1).max(500).optional().describe("Max number of events to return"),
+      offset: z.number().int().min(0).optional().describe("Pagination offset"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ limit, offset }) => {
+      try {
+        const res = await api.get("/api/v1/markets/polymarket/events", { params: { ...(limit !== undefined && { limit }), ...(offset !== undefined && { offset }) } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Polymarket events error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_markets_polymarket_market",
+    "Get detail for a single Polymarket market by its condition ID. Returns outcomes, current prices, volume, and resolution status. Costs $0.001 USDC.",
+    {
+      conditionId: z.string().min(1).describe("Polymarket condition ID (0x-prefixed hex identifying the market)"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ conditionId }) => {
+      try {
+        const res = await api.get(`/api/v1/markets/polymarket/market/${conditionId}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Polymarket market error: ${error.message}. Check the conditionId.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_markets_polymarket_orderbook",
+    "Get the live CLOB order book for a Polymarket outcome token. Returns bids and asks with sizes. Costs $0.001 USDC.",
+    {
+      tokenId: z.string().min(1).describe("Polymarket outcome (CLOB) token ID to fetch the order book for"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ tokenId }) => {
+      try {
+        const res = await api.get(`/api/v1/markets/polymarket/orderbook/${tokenId}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Polymarket orderbook error: ${error.message}. Check the tokenId.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_markets_polymarket_trades",
+    "Get recent trades for a Polymarket market by condition ID. Returns trade history with price, size, side, and timestamp. Costs $0.001 USDC.",
+    {
+      conditionId: z.string().min(1).describe("Polymarket condition ID to fetch recent trades for"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ conditionId }) => {
+      try {
+        const res = await api.get(`/api/v1/markets/polymarket/trades/${conditionId}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Polymarket trades error: ${error.message}. Check the conditionId.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_markets_kalshi_events",
+    "List prediction market events from Kalshi (regulated US event contracts). Returns events with markets, tickers, and prices. Costs $0.001 USDC.",
+    {
+      limit: z.number().int().min(1).max(500).optional().describe("Max number of events to return"),
+      status: z.string().optional().describe("Filter by status (e.g. 'open', 'closed', 'settled')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ limit, status }) => {
+      try {
+        const res = await api.get("/api/v1/markets/kalshi/events", { params: { ...(limit !== undefined && { limit }), ...(status && { status }) } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Kalshi events error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_markets_kalshi_market",
+    "Get detail for a single Kalshi market by its ticker. Returns yes/no prices, volume, and settlement info. Costs $0.001 USDC.",
+    {
+      ticker: z.string().min(1).describe("Kalshi market ticker (e.g. 'PRES-2024-DJT')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ ticker }) => {
+      try {
+        const res = await api.get(`/api/v1/markets/kalshi/market/${ticker}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Kalshi market error: ${error.message}. Check the ticker.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_markets_search",
+    "Search prediction markets across Polymarket and Kalshi in one query. Returns matching markets from all sources with prices and source labels. Costs $0.002 USDC.",
+    {
+      q: z.string().min(1).describe("Search query (e.g. 'election', 'bitcoin 100k', 'fed rate cut')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ q }) => {
+      try {
+        const res = await api.get("/api/v1/markets/search", { params: { q } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Markets search error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  // ============================================
+  // Stocks — Finnhub (4 tools)
+  // ============================================
+
+  server.tool(
+    "spraay_stocks_price",
+    "Get a real-time stock quote via Finnhub. Returns current price, daily open/high/low, previous close, and change. Costs $0.001 USDC.",
+    {
+      symbol: z.string().min(1).describe("Stock ticker symbol (e.g. 'AAPL', 'TSLA', 'MSFT')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ symbol }) => {
+      try {
+        const res = await api.get("/api/v1/stocks/price", { params: { symbol } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Stock price error: ${error.message}. Find the symbol with spraay_stocks_search.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_stocks_search",
+    "Search for a stock symbol by company name or partial ticker via Finnhub. Returns matching symbols with descriptions. Costs $0.001 USDC.",
+    {
+      q: z.string().min(1).describe("Search query — company name or partial symbol (e.g. 'apple', 'micro')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ q }) => {
+      try {
+        const res = await api.get("/api/v1/stocks/search", { params: { q } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Stock search error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_stocks_history",
+    "Get historical OHLC candles for a stock via Finnhub. Returns open/high/low/close/volume series for the requested resolution and range. Costs $0.001 USDC.",
+    {
+      symbol: z.string().min(1).describe("Stock ticker symbol (e.g. 'AAPL')"),
+      resolution: z.string().optional().describe("Candle resolution: '1', '5', '15', '30', '60' (minutes), 'D', 'W', or 'M'. Defaults to daily."),
+      from: z.number().int().optional().describe("Range start as a Unix timestamp in seconds"),
+      to: z.number().int().optional().describe("Range end as a Unix timestamp in seconds"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ symbol, resolution, from, to }) => {
+      try {
+        const res = await api.get("/api/v1/stocks/history", { params: { symbol, ...(resolution && { resolution }), ...(from !== undefined && { from }), ...(to !== undefined && { to }) } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Stock history error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_stocks_company",
+    "Get a company profile via Finnhub. Returns name, exchange, industry, market cap, IPO date, and more. Costs $0.001 USDC.",
+    {
+      symbol: z.string().min(1).describe("Stock ticker symbol to fetch the company profile for (e.g. 'AAPL')"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ symbol }) => {
+      try {
+        const res = await api.get("/api/v1/stocks/company", { params: { symbol } });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Stock company error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  // ============================================
+  // Image Generation — DALL-E 3 / FLUX / SDXL (3 tools)
+  // ============================================
+
+  server.tool(
+    "spraay_image_generate",
+    "Generate an image from a text prompt using DALL-E 3, FLUX, or SDXL. May return the image directly or a job ID to poll with spraay_image_status. Costs $0.06 USDC.",
+    {
+      prompt: z.string().min(1).max(4000).describe("Text prompt describing the image to generate"),
+      model: z.string().optional().describe("Image model: 'dall-e-3', 'flux', or 'sdxl'. Omit to use the gateway default."),
+      size: z.string().optional().describe("Output dimensions (e.g. '1024x1024', '1792x1024', '1024x1792')"),
+      n: z.number().int().min(1).max(4).optional().describe("Number of images to generate (default 1)"),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ prompt, model, size, n }) => {
+      try {
+        const res = await api.post("/api/v1/image/generate", { prompt, ...(model && { model }), ...(size && { size }), ...(n !== undefined && { n }) });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Image generate error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_image_edit",
+    "Edit an existing image with a text prompt (optionally masked). May return the edited image directly or a job ID to poll with spraay_image_status. Costs $0.05 USDC.",
+    {
+      image: z.string().min(1).describe("Source image to edit — a URL or base64-encoded image data"),
+      prompt: z.string().min(1).max(4000).describe("Text prompt describing the desired edit"),
+      mask: z.string().optional().describe("Optional mask image (URL or base64) marking the region to edit; transparent areas are replaced"),
+      model: z.string().optional().describe("Image editing model. Omit to use the gateway default."),
+    },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    async ({ image, prompt, mask, model }) => {
+      try {
+        const res = await api.post("/api/v1/image/edit", { image, prompt, ...(mask && { mask }), ...(model && { model }) });
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Image edit error: ${error.message}.` }] };
+      }
+    }
+  );
+
+  server.tool(
+    "spraay_image_status",
+    "Poll the status of an image generation or edit job by ID. Returns progress/state and the result URL(s) once complete. Costs $0.001 USDC.",
+    {
+      id: z.string().min(1).describe("Image job ID returned by spraay_image_generate or spraay_image_edit"),
+    },
+    { readOnlyHint: true, openWorldHint: true },
+    async ({ id }) => {
+      try {
+        const res = await api.get(`/api/v1/image/status/${id}`);
+        return { content: [{ type: "text", text: JSON.stringify(res.data, null, 2) }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: "text", text: `Image status error: ${error.message}. Check the job ID.` }] };
+      }
+    }
+  );
   // ============================================
   // AUTO-GENERATED tools from gateway sync
   // ============================================
@@ -1477,7 +1865,7 @@ function registerTools(server: McpServer, api: any) {
         mimeType: "application/json",
         text: JSON.stringify({
           name: "Spraay x402 Gateway", version: "4.0.0", gateway: "https://gateway.spraay.app",
-          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 148, activeTools: 148,
+          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 169, activeTools: 169,
           categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data", "GPU/Compute", "Search/RAG"],
           persistence: "Supabase Postgres", protocol: "x402", facilitator: "Coinbase CDP",
         }, null, 2),
@@ -1823,10 +2211,10 @@ async function startHttpServer(api: any) {
     res.json({
       name: "Spraay x402 MCP Server",
       version: "4.0.0",
-      description: "148 MCP tools for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
+      description: "169 MCP tools for full-stack DeFi infrastructure on Base with persistent Supabase storage. AI, payments, swaps, oracle, bridge, payroll, invoicing, escrow, inference, analytics, communication, infrastructure, identity, compliance, GPU/Compute & Search/RAG. Agents pay USDC per request via x402 protocol.",
       mcp: "/mcp",
-      tools: 148,
-      activeTools: 148,
+      tools: 169,
+      activeTools: 169,
       resources: 3,
       prompts: 4,
       gateway: gatewayURL,
@@ -1849,7 +2237,7 @@ async function startHttpServer(api: any) {
     console.log(`\n💧 Spraay MCP Server (HTTP) v3.2.0 running on port ${PORT}`);
     console.log(`📡 MCP endpoint: http://localhost:${PORT}/mcp`);
     console.log(`🔗 Gateway: ${gatewayURL}`);
-    console.log(`🔧 148 tools + 3 resources + 4 prompts\n`);
+    console.log(`🔧 169 tools + 3 resources + 4 prompts\n`);
   });
 }
 
