@@ -1,33 +1,35 @@
 <!--
   ============================================================================
-  COUNTS — confirmed against the live gateway manifest on 2026-06-30.
+  COUNTS — confirmed against the live gateway manifest on 2026-07-01.
   Source of truth: https://gateway.spraay.app/.well-known/x402.json
 
-    Gateway:     174 endpoints  (143 paid + 31 free), 27 categories
-    MCP server:  169 tools      (gateway minus the 5 agent-wallet endpoints)
+    Gateway:     192 endpoints  (160 paid + 32 free), 33 categories
+    MCP server:  183 tools      (97 manual + 86 auto-generated)
 
-  This README uses 169 because it documents the MCP server, which exposes a
-  subset of gateway endpoints as tools. CONFIRM 169 before committing:
+  This README uses 183 because it documents the MCP server, which exposes a
+  subset of gateway endpoints as tools. CONFIRM 183 before committing:
 
     npm run sync
     Select-String -Path src\auto-tools.ts -Pattern "server\.tool\(" | Measure-Object | % Count
+    # that is the auto count (86); add the manual count:
+    Select-String -Path src\index.ts -Pattern "^  server\.tool\(" | Measure-Object | % Count
 
-  If that prints something other than 169, do one find-replace of "169" here.
+  If the sum differs from 183, do one find-replace of "183" here.
 
   Keep this number in sync with: the GitHub repo Description, meta.json,
   smithery.yaml, and the cursor.directory listing. Gateway-level surfaces use
-  174; MCP-server surfaces use 169.
+  192; MCP-server surfaces use 183.
   ============================================================================
 -->
 
 # 💧 Spraay x402 MCP Server
 
 [![smithery badge](https://smithery.ai/badge/Plagtech/Spraay-x402-mcp)](https://smithery.ai/servers/Plagtech/Spraay-x402-mcp)
-![Version](https://img.shields.io/badge/version-4.2.0-blue)
-![Tools](https://img.shields.io/badge/tools-169-blueviolet)
+![Version](https://img.shields.io/badge/version-4.3.0-blue)
+![Tools](https://img.shields.io/badge/tools-183-blueviolet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Full-stack DeFi infrastructure for AI agents — 169 pay-per-call tools, backed by the 174-endpoint Spraay x402 Gateway on Base, with Solana, Ethereum, XRP, and Stellar payment rails.**
+**Full-stack DeFi infrastructure for AI agents — 183 pay-per-call tools, backed by the 192-endpoint Spraay x402 Gateway on Base, with Solana, Ethereum, XRP, and Stellar payment rails.**
 
 Connect Claude, Cursor, or any MCP client to onchain payments, batch payouts,
 swaps, bridging, payroll, invoicing, escrow, oracle data, analytics, 200+ AI
@@ -121,7 +123,7 @@ npm start                     # auto-creates a wallet on first run
 
 ## Tool catalog
 
-169 tools spanning the gateway's 27 categories. Highlights by area:
+183 tools spanning the gateway's 33 categories. Highlights by area:
 
 | Area | What it covers |
 | --- | --- |
