@@ -1532,15 +1532,15 @@ function registerTools(server: McpServer, api: any) {
   );
 
   // ============================================
-  // Free Chat — NVIDIA NIM (3 tools, FREE)
+  // Free Chat — open models (3 tools, FREE)
   // ============================================
 
   server.tool(
     "spraay_free_chat",
-    "Send a message to a free AI model hosted on NVIDIA NIM (Llama, Mistral, and more). Returns the model's completion at no cost. Use spraay_free_chat_models to list available models. FREE — no x402 charge.",
+    "Send a message to a free AI model from the open models catalog (Llama, Mistral, and more). Returns the model's completion at no cost. Use spraay_free_chat_models to list available models. FREE — no x402 charge.",
     {
       message: z.string().min(1).max(32000).describe("User message to send to the model"),
-      model: z.string().optional().describe("NVIDIA NIM model ID (e.g. 'meta/llama-3.1-70b-instruct'). Omit to use the gateway default. List via spraay_free_chat_models."),
+      model: z.string().optional().describe("Open model ID (e.g. 'meta/llama-3.1-70b-instruct'). Omit to use the gateway default. List via spraay_free_chat_models."),
       systemPrompt: z.string().max(8000).optional().describe("Optional system prompt to set model behavior and context"),
     },
     { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -1559,7 +1559,7 @@ function registerTools(server: McpServer, api: any) {
 
   server.tool(
     "spraay_free_chat_models",
-    "List the free AI models available for spraay_free_chat (NVIDIA NIM catalog). Returns model IDs and metadata. FREE — no x402 charge.",
+    "List the free AI models available for spraay_free_chat (open models catalog). Returns model IDs and metadata. FREE — no x402 charge.",
     {},
     { readOnlyHint: true, openWorldHint: true },
     async () => {
@@ -1866,7 +1866,7 @@ function registerTools(server: McpServer, api: any) {
         mimeType: "application/json",
         text: JSON.stringify({
           name: "Spraay x402 Gateway", version: pkg.version, gateway: "https://gateway.spraay.app",
-          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 169, activeTools: 169,
+          network: "Base (eip155:8453)", paymentToken: "USDC", totalTools: 183, activeTools: 183,
           categories: ["AI", "Payments", "Swap", "Oracle", "Bridge", "Payroll", "Invoice", "Analytics", "Escrow", "Inference", "Communication", "Infrastructure", "Identity", "Compliance", "Data", "GPU/Compute", "Search/RAG"],
           persistence: "Supabase Postgres", protocol: "x402", facilitator: "Coinbase CDP",
         }, null, 2),
